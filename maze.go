@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"fmt"
+  "strings"
 	"image"
 	_ "image/png"
 	"github.com/faiface/pixel"
@@ -58,14 +59,14 @@ var (
 	// 10 x 10
 	backgroundMap [][]uint8 = [][]uint8{
 				{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+				{1, 0, 2, 0, 0, 0, 0, 2, 0, 1},
+				{0, 0, 0, 0, 1, 0, 0, 3, 0, 1},
+				{1, 0, 0, 0, 3, 0, 0, 0, 0, 1},
+				{1, 0, 0, 2, 4, 2, 0, 0, 0, 1},
+				{1, 0, 0, 0, 2, 0, 0, 0, 0, 0},
 				{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-				{0, 0, 0, 0, 1, 2, 0, 0, 0, 1},
-				{1, 0, 0, 1, 3, 1, 3, 0, 0, 1},
-				{1, 0, 0, 2, 4, 2, 4, 0, 0, 1},
-				{1, 0, 0, 0, 2, 4, 0, 0, 0, 0},
-				{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-				{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-				{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+				{1, 0, 1, 0, 0, 0, 0, 3, 2, 1},
+				{1, 0, 1, 0, 0, 0, 4, 2, 1, 1},
 				{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 	}
 
@@ -78,6 +79,10 @@ var (
 
 	// Keyboard
 	keys		map[Direction][]bool
+
+	// COMMANDS
+	binaryCommands string = "111100110111111111"
+	intCommands	[]Direction
 )
 
 // ----------------------- Common Functions ----------------------- //
@@ -280,6 +285,7 @@ func run() {
 	// Draw all background objects first to this object and just draw to window one time later
 	imd := imdraw.New(spriteMap)
 
+	cycle := 0
 
 	// Infinite loop
 	for !win.Closed() {
@@ -295,36 +301,43 @@ func run() {
 		// ---------------------- Keyboard ---------------------- //
 
 		// Update player direction and keys pressed
-		if win.JustPressed(pixelgl.KeyLeft) {
-			direction = left
-			keys[direction][0] = true
-
-		}
-		if win.JustPressed(pixelgl.KeyRight) {
-			direction = right
-			keys[direction][0] = true
-		}
 		if win.JustPressed(pixelgl.KeyUp) {
-			direction = up
-			keys[direction][0] = true
-
+			keys[up][0] = true
 		}
 		if win.JustPressed(pixelgl.KeyDown) {
-			direction = down
-			keys[direction][0] = true
+			keys[down][0] = true
 		}
+		if win.JustPressed(pixelgl.KeyLeft) {
+			keys[left][0] = true
+		}
+		if win.JustPressed(pixelgl.KeyRight) {
+			keys[right][0] = true
+		}
+
+
+		// ---------- Read and execute commands from IA ---------- //
+
+		if cycle < 9 {
+			keys[intCommands[cycle]][0] = true
+		}
+
+		// ---------------------- Keyboard ---------------------- //
 
 		// Move Player - Necessary for the automation of player execution
 		if keys[up][0] == true {
+			direction = up
 			p0.update(up)
 		}
 		if keys[down][0] == true {
+			direction = down
 			p0.update(down)
 		}
 		if keys[left][0] == true {
+			direction = left
 			p0.update(left)
 		}
 		if keys[right][0] == true {
+			direction = right
 			p0.update(right)
 		}
 
@@ -333,6 +346,7 @@ func run() {
 		keys[down][0] = false
 		keys[left][0] = false
 		keys[right][0] = false
+
 
 		// -------------------- Draw Objects -------------------- //
 
@@ -347,10 +361,46 @@ func run() {
 		// Update the screen
 		win.Update()
 
+		// Update cycle
+		cycle ++
+
 	}
 }
 
+// Convert the binary string of individuals to commands
+func individualtoCommands(individual string) {
+
+	individual_split := strings.Split(individual, "")
+
+	// Read individual and transform it to a slice with commands
+	index := 0
+	for i := 0 ; i < len(individual_split) / 2 ; i ++ {
+		command := fmt.Sprintf("%s%s", individual_split[index], individual_split[index+1])
+
+		if command == "00" {
+			intCommands = append(intCommands, 0)
+		} else if command == "01" {
+			intCommands = append(intCommands, 1)
+		} else if command == "10" {
+			intCommands = append(intCommands, 2)
+		} else if command == "11" {
+			intCommands = append(intCommands, 3)
+		} else {
+			fmt.Printf("Value unexpected on binary to command conversion, exiting.\n")
+			os.Exit(2)
+		}
+
+		index+=2
+	}
+
+}
+
+
 // Main function
 func main() {
+
+	// Decode the binary numbers of an individual and convert into commands [0(up), 1(down), 2(left), 3(right)]
+	individualtoCommands(binaryCommands)
+
 	pixelgl.Run(run)
 }
