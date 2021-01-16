@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 	"fmt"
-	// "time"
 	"image"
 	_ "image/png"
 	"github.com/faiface/pixel"
@@ -26,14 +25,13 @@ type player struct {
 // --------- Background --------- //
 type background struct {
 	sprites		map[int][]pixel.Rect
-  spriteMap pixel.Picture
 }
 
 type block struct {
-    frame pixel.Rect
-    sheet pixel.Picture
-    gridX     int
-    gridY     int
+  currentSprite	pixel.Rect
+  spriteMap	pixel.Picture
+  gridX		int
+  gridY		int
 }
 
 // ---------- Constants --------- //
@@ -60,12 +58,12 @@ var (
 	backgroundMap [][]uint8 = [][]uint8{
 				{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 				{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-				{0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-				{1, 0, 0, 0, 1, 1, 0, 0, 0, 1},
-				{1, 0, 0, 1, 3, 1, 0, 0, 0, 1},
-				{1, 0, 0, 0, 1, 1, 0, 0, 0, 1},
-				{1, 0, 0, 0, 1, 0, 0, 0, 0, 1},
-				{1, 0, 0, 4, 0, 0, 2, 0, 0, 0},
+				{0, 0, 0, 0, 1, 2, 0, 0, 0, 1},
+				{1, 0, 0, 1, 3, 1, 3, 0, 0, 1},
+				{1, 0, 0, 2, 4, 2, 4, 0, 0, 1},
+				{1, 0, 0, 0, 2, 4, 0, 0, 0, 0},
+				{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+				{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 				{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 				{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 	}
@@ -73,6 +71,9 @@ var (
 	// Grid size is defined by : X = number of objects per line	Y = number of objects in the slice
 	grid_size_x	int = len(backgroundMap[0])
 	grid_size_y	int = len(backgroundMap)
+
+	// Score
+	score int = 0
 )
 
 // ----------------------- Common Functions ----------------------- //
@@ -152,14 +153,14 @@ func (p0 *player) getNewGridPos(direction Direction) (int, int) {
 	}
 	if direction == up {
 		// Keep the player inside the window && just update if there isn't an object on the next move position
-		if p0.grid_pos_Y + 1 < grid_size_x && backgroundMap[len(backgroundMap[0]) - 1 - (p0.grid_pos_Y + 1)][p0.grid_pos_X] == 0 {
+		if p0.grid_pos_Y + 1 < grid_size_x && backgroundMap[len(backgroundMap) - 1 - (p0.grid_pos_Y + 1)][p0.grid_pos_X] == 0 {
 			p0.grid_pos_Y += 1
 		}
 		return p0.grid_pos_X, p0.grid_pos_Y
 	}
 	if direction == down {
 		// Keep the player inside the window && just update if there isn't an object on the next move position
-		if p0.grid_pos_Y - 1 >= 0 && backgroundMap[len(backgroundMap[0]) - 1 - (p0.grid_pos_Y - 1)][p0.grid_pos_X] == 0 {
+		if p0.grid_pos_Y - 1 >= 0 && backgroundMap[len(backgroundMap) - 1 - (p0.grid_pos_Y - 1)][p0.grid_pos_X] == 0 {
 			p0.grid_pos_Y -= 1
 		}
 		return p0.grid_pos_X, p0.grid_pos_Y
@@ -171,15 +172,14 @@ func (p0 *player) getNewGridPos(direction Direction) (int, int) {
 func (p0 *player) update(direction Direction) {
 	p0.grid_pos_X, p0.grid_pos_Y = p0.getNewGridPos(direction)
 	p0.currentSprite = p0.sprites[direction][0]
+	score = p0.grid_pos_X
 }
 
 
 // -------------------------- Background -------------------------- //
 
 // Set board sprites in a map based on its direction
-//TODO bgd.spriteMap NOT BEING USED
 func (bgd *background) setPlayerSprites(spriteMapImg pixel.Picture) {
-	bgd.spriteMap = spriteMapImg
 
 	// X,Y(Size of each pixel), X, Y(Position in spriteMap)
 	bgd.sprites = make(map[int][]pixel.Rect)
@@ -192,7 +192,7 @@ func (bgd *background) setPlayerSprites(spriteMapImg pixel.Picture) {
 // Draw a single block of the background
 func (blk block) draw(t pixel.Target) {
     sprite := pixel.NewSprite(nil, pixel.Rect{})
-    sprite.Set(blk.sheet, blk.frame)
+    sprite.Set(blk.spriteMap, blk.currentSprite)
     pos := getObjectGridPosition(screen_width, screen_height, len(backgroundMap[0]), len(backgroundMap), blk.gridY, blk.gridX)
 
     sprite.Draw(t, pixel.IM.
@@ -211,16 +211,16 @@ func (bgd *background) draw(t pixel.Target) error {
 			if backgroundMap[i][j] == 0 {
 				// Don't draw anything, its the path
 			} else if backgroundMap[i][j] == 1 {
-				b:=block{frame: bgd.sprites[0][0], gridX:(len(backgroundMap) -1 ) -i, gridY:j, sheet:bgd.spriteMap}
+				b:=block{currentSprite: bgd.sprites[0][0], gridX:(len(backgroundMap) -1 ) -i, gridY:j}
 				b.draw(t)
 			} else if backgroundMap[i][j] == 2 {
-				b:=block{frame: bgd.sprites[1][0], gridX:(len(backgroundMap) -1 ) -i, gridY:j, sheet:bgd.spriteMap}
+				b:=block{currentSprite: bgd.sprites[1][0], gridX:(len(backgroundMap) -1 ) -i, gridY:j}
 				b.draw(t)
 			} else if backgroundMap[i][j] == 3 {
-				b:=block{frame: bgd.sprites[2][0], gridX:(len(backgroundMap) -1 ) -i, gridY:j, sheet:bgd.spriteMap}
+				b:=block{currentSprite: bgd.sprites[2][0], gridX:(len(backgroundMap) -1 ) -i, gridY:j}
 				b.draw(t)
 			} else if backgroundMap[i][j] == 4 {
-				b:=block{frame: bgd.sprites[3][0], gridX:(len(backgroundMap) -1 ) -i, gridY:j, sheet:bgd.spriteMap}
+				b:=block{currentSprite: bgd.sprites[3][0], gridX:(len(backgroundMap) -1 ) -i, gridY:j}
 				b.draw(t)
 			}
 		}
@@ -241,6 +241,9 @@ func run() {
 	if err != nil {
 		panic(err)
 	}
+
+	// Disable on screen mouse cursor
+	win.SetCursorVisible(false)
 
 	// Load the PixelMap Image
 	spriteMap, err := loadPicture("spritemap-rpg.png")
