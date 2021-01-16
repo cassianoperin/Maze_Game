@@ -8,9 +8,11 @@ import (
 	_ "image/png"
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/pixelgl"
+	"github.com/faiface/pixel/imdraw"
 	"golang.org/x/image/colornames"
 )
 
+// ----------- Player ----------- //
 type Direction int
 
 type player struct {
@@ -22,6 +24,20 @@ type player struct {
 	grid_pos_Y	int
 }
 
+// --------- Background --------- //
+type background struct {
+	sprites		map[int][]pixel.Rect
+  spriteMap pixel.Picture
+}
+
+type block struct {
+    frame pixel.Rect
+    sheet pixel.Picture
+    gridX     int
+    gridY     int
+}
+
+// ---------- Constants --------- //
 const (
 	// Window Size
 	screen_height = 800
@@ -34,10 +50,33 @@ const (
 	right	Direction = 3
 
 	// Grid
-	grid_size_x	int = 20
-	grid_size_y	int = 20
+	//TODO, THE TREES ARE SIZED BASED ON ARRAY SIZE, MATCH IT!!
+	grid_size_x	int = 10
+	grid_size_y	int = 10
 )
 
+// --------- Variables ---------- //
+var (
+
+	// Background
+	// 0 = path
+	// 1 = light green tree		2 = pink tree
+	// 3 = dark green tree		4 = middle green tree
+	backgroundMap [][]uint8 = [][]uint8{
+				{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+				{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+				{1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{1, 0, 0, 0, 1, 1, 0, 0, 0, 1},
+				{1, 0, 0, 1, 3, 1, 0, 0, 0, 1},
+				{1, 0, 0, 0, 1, 1, 0, 0, 0, 1},
+				{1, 0, 0, 0, 1, 0, 0, 0, 0, 1},
+				{0, 0, 0, 4, 0, 0, 2, 0, 0, 1},
+				{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+				{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+	}
+)
+
+// ----------------------- Common Functions ----------------------- //
 
 // Load Picture File
 func loadPicture(path string) (pixel.Picture, error) {
@@ -55,8 +94,7 @@ func loadPicture(path string) (pixel.Picture, error) {
 	return pixel.PictureDataFromImage(img), nil
 }
 
-
-// Get the correct sprite in SpriteMap in setPlayerSprites()
+// Get the correct sprite in SpriteMap, based on it size and coordinates
 func setSprite(spriteWidth float64, spriteHeight float64, posX int, posY int) pixel.Rect {
 	// 4 points of the rect
 	return pixel.R(
@@ -67,6 +105,15 @@ func setSprite(spriteWidth float64, spriteHeight float64, posX int, posY int) pi
 	)
 }
 
+// Get the coordinates to draw objects on screen
+func getObjectGridPosition(width float64, height float64, grid_x_size int, grid_y_size int, x int, y int) pixel.Rect {
+	gridWidth := width / float64(grid_x_size)
+	gridHeight := height / float64(grid_y_size)
+	return pixel.R(float64(x)*gridWidth, float64(y)*gridHeight, float64((x+1))*gridWidth, float64((y+1))*gridHeight)
+}
+
+
+// ---------------------------- Player ---------------------------- //
 
 // Set player sprites in a map based on its direction
 func (p0 *player) setPlayerSprites(spriteMapImg pixel.Picture) {
@@ -79,24 +126,14 @@ func (p0 *player) setPlayerSprites(spriteMapImg pixel.Picture) {
 	p0.sprites[right] = append(p0.sprites[right], setSprite(50, 70, 6, 1))
 }
 
-
-// Get the coordinates to draw Player on screen
-func getPlayerGridPosition(width float64, height float64, grid_x_size int, grid_y_size int, x int, y int) pixel.Rect {
-	gridWidth := width / float64(grid_x_size)
-	gridHeight := height / float64(grid_y_size)
-	return pixel.R(float64(x)*gridWidth, float64(y)*gridHeight, float64((x+1))*gridWidth, float64((y+1))*gridHeight)
-}
-
-
 // Draw Player on screen
 func (p0 *player) draw(win pixel.Target) {
 	sprite := pixel.NewSprite(nil, pixel.Rect{})
 	sprite.Set(p0.spriteMap, p0.currentSprite)
-	pos := getPlayerGridPosition(screen_width, screen_height, grid_size_x, grid_size_y, p0.grid_pos_X, p0.grid_pos_Y)
+	pos := getObjectGridPosition(screen_width, screen_height, grid_size_x, grid_size_y, p0.grid_pos_X, p0.grid_pos_Y)
 	sprite.Draw(win, pixel.IM.ScaledXY(pixel.ZV, pixel.V(     pos.W()/sprite.Frame().W(),        pos.H()/sprite.Frame().H(),    ) ).Moved(pos.Center()),
 	)
 }
-
 
 // Update the grid position accordingly to the direction of the next frame
 func (p0 *player) getNewGridPos(direction Direction) (int, int) {
@@ -139,7 +176,63 @@ func (p0 *player) update(direction Direction) {
 }
 
 
-// PixelGL Window
+// -------------------------- Background -------------------------- //
+
+// Set board sprites in a map based on its direction
+//TODO NOT BEING USED
+func (bgd *background) setPlayerSprites(spriteMapImg pixel.Picture) {
+	bgd.spriteMap = spriteMapImg
+
+	// X,Y(Size of each pixel), X, Y(Position in spriteMap)
+	bgd.sprites = make(map[int][]pixel.Rect)
+	bgd.sprites[0] = append(bgd.sprites[0], setSprite(130, 150, 0, 2))
+	bgd.sprites[1] = append(bgd.sprites[1], setSprite(130, 150, 1, 2))
+	bgd.sprites[2] = append(bgd.sprites[2], setSprite(130, 150, 2, 2))
+	bgd.sprites[3] = append(bgd.sprites[3], setSprite(130, 150, 3, 2))
+}
+
+// Draw a single block of the background
+func (blk block) draw(t pixel.Target) {
+    sprite := pixel.NewSprite(nil, pixel.Rect{})
+    sprite.Set(blk.sheet, blk.frame)
+    pos := getObjectGridPosition(screen_width, screen_height, len(backgroundMap[0]), len(backgroundMap), blk.gridY, blk.gridX)
+
+    sprite.Draw(t, pixel.IM.
+        ScaledXY(pixel.ZV, pixel.V(
+            pos.W()/sprite.Frame().W(),
+            pos.H()/sprite.Frame().H(),
+        )).
+        Moved(pos.Center()),
+    )
+}
+
+// Draw blocks into the background
+func (bgd *background) draw(t pixel.Target) error {
+	for i := 0; i < len(backgroundMap); i++ {
+		for j := 0; j < len(backgroundMap[0]); j++ {
+			if backgroundMap[i][j] == 0 {
+				// Don't draw anything, its the path
+			} else if backgroundMap[i][j] == 1 {
+				b:=block{frame: bgd.sprites[0][0], gridX:i, gridY:j, sheet:bgd.spriteMap}
+				b.draw(t)
+			} else if backgroundMap[i][j] == 2 {
+				b:=block{frame: bgd.sprites[1][0], gridX:i, gridY:j, sheet:bgd.spriteMap}
+				b.draw(t)
+			} else if backgroundMap[i][j] == 3 {
+				b:=block{frame: bgd.sprites[2][0], gridX:i, gridY:j, sheet:bgd.spriteMap}
+				b.draw(t)
+			} else if backgroundMap[i][j] == 4 {
+				b:=block{frame: bgd.sprites[3][0], gridX:i, gridY:j, sheet:bgd.spriteMap}
+				b.draw(t)
+			}
+		}
+	}
+	return nil
+}
+
+
+
+// ------------------------ PixelGL Window ------------------------ //
 func run() {
 	cfg := pixelgl.WindowConfig{
 		Title:  "Maze Game",
@@ -164,6 +257,14 @@ func run() {
 	// Initial Direction
 	direction:=right
 
+	// Initialize the background
+	bgd := &background{}
+	bgd.setPlayerSprites(spriteMap)
+
+	// Draw all background objects first to this object and just draw to window one time later
+	imd := imdraw.New(spriteMap)
+
+
 	// Infinite loop
 	for !win.Closed() {
 
@@ -173,7 +274,7 @@ func run() {
     }
 
 		// Clear Screen
-		win.Clear(colornames.White)
+		win.Clear(colornames.Lightgreen)
 
 		// Update player direction
 		if win.Pressed(pixelgl.KeyLeft) {
@@ -189,6 +290,11 @@ func run() {
 			direction = down
 		}
 		p0.update(direction)
+
+		// Draw the entire background
+		bgd.draw(imd)
+		// Draw with just one draw() call to screen
+		imd.Draw(win)
 
 		// Draw Player on the screen
 		p0.draw(win)
