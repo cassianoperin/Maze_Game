@@ -45,6 +45,7 @@ const (
 	down	Direction = 1
 	left	Direction = 2
 	right	Direction = 3
+
 )
 
 // --------- Variables ---------- //
@@ -74,6 +75,9 @@ var (
 
 	// Score
 	score int = 0
+
+	// Keyboard
+	keys		map[Direction][]bool
 )
 
 // ----------------------- Common Functions ----------------------- //
@@ -187,6 +191,7 @@ func (bgd *background) setPlayerSprites(spriteMapImg pixel.Picture) {
 	bgd.sprites[1] = append(bgd.sprites[1], setSprite(130, 150, 1, 2))
 	bgd.sprites[2] = append(bgd.sprites[2], setSprite(130, 150, 2, 2))
 	bgd.sprites[3] = append(bgd.sprites[3], setSprite(130, 150, 3, 2))
+	bgd.sprites[4] = append(bgd.sprites[4], setSprite(50, 70, 0, 3))
 }
 
 // Draw a single block of the background
@@ -245,6 +250,15 @@ func run() {
 	// Disable on screen mouse cursor
 	win.SetCursorVisible(false)
 
+	// Initialize Keyboard
+
+	// X,Y(Size of each pixel), X, Y(Position in spriteMap)
+	keys = make(map[Direction][]bool)
+	keys[up]		= append(keys[up], false)
+	keys[down]	= append(keys[down], false)
+	keys[left]	= append(keys[left], false)
+	keys[right]	= append(keys[right], false)
+
 	// Load the PixelMap Image
 	spriteMap, err := loadPicture("spritemap-rpg.png")
 
@@ -278,26 +292,49 @@ func run() {
 		// Clear Screen
 		win.Clear(colornames.Lightgreen)
 
-		// Update player direction
+		// ---------------------- Keyboard ---------------------- //
+
+		// Update player direction and keys pressed
 		if win.JustPressed(pixelgl.KeyLeft) {
 			direction = left
-			p0.update(direction)
+			keys[direction][0] = true
+
 		}
 		if win.JustPressed(pixelgl.KeyRight) {
 			direction = right
-			p0.update(direction)
-
+			keys[direction][0] = true
 		}
 		if win.JustPressed(pixelgl.KeyUp) {
 			direction = up
-			p0.update(direction)
+			keys[direction][0] = true
 
 		}
 		if win.JustPressed(pixelgl.KeyDown) {
 			direction = down
-			p0.update(direction)
-
+			keys[direction][0] = true
 		}
+
+		// Move Player - Necessary for the automation of player execution
+		if keys[up][0] == true {
+			p0.update(up)
+		}
+		if keys[down][0] == true {
+			p0.update(down)
+		}
+		if keys[left][0] == true {
+			p0.update(left)
+		}
+		if keys[right][0] == true {
+			p0.update(right)
+		}
+
+		// Clean key pressed for the next cycle
+		keys[up][0] = false
+		keys[down][0] = false
+		keys[left][0] = false
+		keys[right][0] = false
+
+		// -------------------- Draw Objects -------------------- //
 
 		// Draw the entire background
 		bgd.draw(imd)
