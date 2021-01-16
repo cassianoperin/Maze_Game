@@ -137,29 +137,29 @@ func (p0 *player) draw(win pixel.Target) {
 // Update the grid position accordingly to the direction of the next frame
 func (p0 *player) getNewGridPos(direction Direction) (int, int) {
 	if direction == right {
-		// Keep the player inside the window
-		if p0.grid_pos_X + 1 < grid_size_x {
+		// Keep the player inside the window && just update if there isn't an object on the next move position
+		if p0.grid_pos_X + 1 < grid_size_x && backgroundMap[len(backgroundMap[0]) - 1 - p0.grid_pos_Y][p0.grid_pos_X + 1] == 0 {
 			p0.grid_pos_X += 1
 		}
 		return p0.grid_pos_X, p0.grid_pos_Y
 	}
 	if direction == left {
-		// Keep the player inside the window
-		if p0.grid_pos_X - 1 >= 0 {
+		// Keep the player inside the window && just update if there isn't an object on the next move position
+		if p0.grid_pos_X - 1 >= 0 && backgroundMap[len(backgroundMap[0]) - 1 - p0.grid_pos_Y][p0.grid_pos_X - 1] == 0 {
 			p0.grid_pos_X -= 1
 		}
 		return p0.grid_pos_X, p0.grid_pos_Y
 	}
 	if direction == up {
-		// Keep the player inside the window
-		if p0.grid_pos_Y + 1 < grid_size_x {
+		// Keep the player inside the window && just update if there isn't an object on the next move position
+		if p0.grid_pos_Y + 1 < grid_size_x && backgroundMap[len(backgroundMap[0]) - 1 - (p0.grid_pos_Y + 1)][p0.grid_pos_X] == 0 {
 			p0.grid_pos_Y += 1
 		}
 		return p0.grid_pos_X, p0.grid_pos_Y
 	}
 	if direction == down {
-		// Keep the player inside the window
-		if p0.grid_pos_Y - 1 >= 0 {
+		// Keep the player inside the window && just update if there isn't an object on the next move position
+		if p0.grid_pos_Y - 1 >= 0 && backgroundMap[len(backgroundMap[0]) - 1 - (p0.grid_pos_Y - 1)][p0.grid_pos_X] == 0 {
 			p0.grid_pos_Y -= 1
 		}
 		return p0.grid_pos_X, p0.grid_pos_Y
@@ -248,13 +248,13 @@ func run() {
 	// Initialize Player data
 	p0 := &player{}
 	// Initial Position
-	p0.grid_pos_X = -1	// Will be 0 after the update with direction RIGHT
+	p0.grid_pos_X = 0
 	p0.grid_pos_Y = 7
 	// Load the Player Sprites in a map
 	p0.setPlayerSprites(spriteMap)
 	// Initial Direction
 	direction := right	// To identify the initial sprite
-	p0.update(direction)
+	p0.currentSprite = p0.sprites[direction][0]
 
 	// Initialize the background
 	bgd := &background{}
