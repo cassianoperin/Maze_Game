@@ -66,7 +66,7 @@ var (
 				{1, 0, 0, 0, 2, 0, 0, 0, 0, 0},
 				{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 				{1, 0, 1, 0, 0, 0, 0, 3, 2, 1},
-				{1, 0, 1, 0, 0, 0, 4, 2, 1, 1},
+				{1, 0, 1, 0, 0, 0, 0, 3, 2, 1},
 				{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 	}
 
@@ -145,31 +145,33 @@ func (p0 *player) draw(win pixel.Target) {
 }
 
 // Update the grid position accordingly to the direction of the next frame
+// Collision Detection
 func (p0 *player) getNewGridPos(direction Direction) (int, int) {
 	if direction == right {
 		// Keep the player inside the window && just update if there isn't an object on the next move position
-		if p0.grid_pos_X + 1 < grid_size_x && backgroundMap[len(backgroundMap[0]) - 1 - p0.grid_pos_Y][p0.grid_pos_X + 1] == 0 {
+		if p0.grid_pos_X + 1 < grid_size_x  && backgroundMap[len(backgroundMap) - 1 - p0.grid_pos_Y][p0.grid_pos_X + 1] == 0 {
 			p0.grid_pos_X += 1
 		}
 		return p0.grid_pos_X, p0.grid_pos_Y
 	}
+	// backgroundMap[line][column]
 	if direction == left {
 		// Keep the player inside the window && just update if there isn't an object on the next move position
-		if p0.grid_pos_X - 1 >= 0 && backgroundMap[len(backgroundMap[0]) - 1 - p0.grid_pos_Y][p0.grid_pos_X - 1] == 0 {
+		if p0.grid_pos_X - 1 >= 0  && backgroundMap[len(backgroundMap) - 1 - p0.grid_pos_Y][p0.grid_pos_X - 1] == 0{
 			p0.grid_pos_X -= 1
 		}
 		return p0.grid_pos_X, p0.grid_pos_Y
 	}
 	if direction == up {
 		// Keep the player inside the window && just update if there isn't an object on the next move position
-		if p0.grid_pos_Y + 1 < grid_size_x && backgroundMap[len(backgroundMap) - 1 - (p0.grid_pos_Y + 1)][p0.grid_pos_X] == 0 {
+		if p0.grid_pos_Y + 1 < grid_size_y  && backgroundMap[len(backgroundMap) - 1 - (p0.grid_pos_Y + 1)][p0.grid_pos_X] == 0{
 			p0.grid_pos_Y += 1
 		}
 		return p0.grid_pos_X, p0.grid_pos_Y
 	}
 	if direction == down {
 		// Keep the player inside the window && just update if there isn't an object on the next move position
-		if p0.grid_pos_Y - 1 >= 0 && backgroundMap[len(backgroundMap) - 1 - (p0.grid_pos_Y - 1)][p0.grid_pos_X] == 0 {
+		if p0.grid_pos_Y - 1 >= 0  && backgroundMap[len(backgroundMap) - 1 - (p0.grid_pos_Y - 1)][p0.grid_pos_X] == 0{
 			p0.grid_pos_Y -= 1
 		}
 		return p0.grid_pos_X, p0.grid_pos_Y

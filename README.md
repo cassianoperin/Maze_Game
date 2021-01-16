@@ -4,4 +4,4 @@ Simple Maze game coded in Go with faiface Pixel library.
 Objective: Cross the screen and reach the empty space on last column on the right
 
 TODO:
-- Collision detection is not working well on matrix != 10x10
+- Insert Genetic Algorithms IA to play.
