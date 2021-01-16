@@ -1,25 +1,25 @@
 package main
 
 import (
+	"os"
 	"fmt"
+	"time"
 	"image"
 	_ "image/png"
-	"os"
-	"golang.org/x/image/colornames"
-	"time"
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/pixelgl"
+	"golang.org/x/image/colornames"
 )
 
 type Direction int
 
 type player struct {
-	direction				Direction
-	sprites					map[Direction][]pixel.Rect
-	currentSprite		pixel.Rect
-	spriteMap				pixel.Picture
-	grid_pos_X			int
-	grid_pos_Y			int
+	direction	Direction
+	sprites		map[Direction][]pixel.Rect
+	currentSprite	pixel.Rect
+	spriteMap	pixel.Picture
+	grid_pos_X	int
+	grid_pos_Y	int
 }
 
 const (
@@ -28,7 +28,7 @@ const (
 	screen_width  = 800
 
 	// Directions
-	up 		Direction = 0
+	up	Direction = 0
 	down	Direction = 1
 	left	Direction = 2
 	right	Direction = 3
@@ -101,16 +101,32 @@ func (p0 *player) draw(win pixel.Target) {
 // Update the grid position accordingly to the direction of the next frame
 func (p0 *player) getNewGridPos(direction Direction) (int, int) {
 	if direction == right {
-		return p0.grid_pos_X + 1, p0.grid_pos_Y
+		// Keep the player inside the window
+		if p0.grid_pos_X + 1 < grid_size_x {
+			p0.grid_pos_X += 1
+		}
+		return p0.grid_pos_X, p0.grid_pos_Y
 	}
 	if direction == left {
-		return p0.grid_pos_X - 1, p0.grid_pos_Y
+		// Keep the player inside the window
+		if p0.grid_pos_X - 1 >= 0 {
+			p0.grid_pos_X -= 1
+		}
+		return p0.grid_pos_X, p0.grid_pos_Y
 	}
 	if direction == up {
-		return p0.grid_pos_X, p0.grid_pos_Y + 1
+		// Keep the player inside the window
+		if p0.grid_pos_Y + 1 < grid_size_x {
+			p0.grid_pos_Y += 1
+		}
+		return p0.grid_pos_X, p0.grid_pos_Y
 	}
 	if direction == down {
-		return p0.grid_pos_X, p0.grid_pos_Y - 1
+		// Keep the player inside the window
+		if p0.grid_pos_Y - 1 >= 0 {
+			p0.grid_pos_Y -= 1
+		}
+		return p0.grid_pos_X, p0.grid_pos_Y
 	}
 	return p0.grid_pos_X, p0.grid_pos_Y
 }
@@ -150,6 +166,12 @@ func run() {
 
 	// Infinite loop
 	for !win.Closed() {
+
+		// Esc to quit program
+    if win.Pressed(pixelgl.KeyEscape) {
+      break
+    }
+
 		// Clear Screen
 		win.Clear(colornames.White)
 
