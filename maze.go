@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 	"fmt"
-	"time"
+	// "time"
 	"image"
 	_ "image/png"
 	"github.com/faiface/pixel"
@@ -16,7 +16,6 @@ import (
 type Direction int
 
 type player struct {
-	direction	Direction
 	sprites		map[Direction][]pixel.Rect
 	currentSprite	pixel.Rect
 	spriteMap	pixel.Picture
@@ -48,11 +47,6 @@ const (
 	down	Direction = 1
 	left	Direction = 2
 	right	Direction = 3
-
-	// Grid
-	//TODO, THE TREES ARE SIZED BASED ON ARRAY SIZE, MATCH IT!!
-	grid_size_x	int = 10
-	grid_size_y	int = 10
 )
 
 // --------- Variables ---------- //
@@ -62,18 +56,23 @@ var (
 	// 0 = path
 	// 1 = light green tree		2 = pink tree
 	// 3 = dark green tree		4 = middle green tree
+	// 10 x 10
 	backgroundMap [][]uint8 = [][]uint8{
 				{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 				{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-				{1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 				{1, 0, 0, 0, 1, 1, 0, 0, 0, 1},
 				{1, 0, 0, 1, 3, 1, 0, 0, 0, 1},
 				{1, 0, 0, 0, 1, 1, 0, 0, 0, 1},
 				{1, 0, 0, 0, 1, 0, 0, 0, 0, 1},
-				{0, 0, 0, 4, 0, 0, 2, 0, 0, 1},
+				{1, 0, 0, 4, 0, 0, 2, 0, 0, 0},
 				{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 				{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 	}
+
+	// Grid size is defined by : X = number of objects per line	Y = number of objects in the slice
+	grid_size_x	int = len(backgroundMap[0])
+	grid_size_y	int = len(backgroundMap)
 )
 
 // ----------------------- Common Functions ----------------------- //
@@ -170,16 +169,15 @@ func (p0 *player) getNewGridPos(direction Direction) (int, int) {
 
 // Update the direction, position on grid and the current sprite each frame
 func (p0 *player) update(direction Direction) {
-	p0.direction = direction
 	p0.grid_pos_X, p0.grid_pos_Y = p0.getNewGridPos(direction)
-	p0.currentSprite = p0.sprites[p0.direction][0]
+	p0.currentSprite = p0.sprites[direction][0]
 }
 
 
 // -------------------------- Background -------------------------- //
 
 // Set board sprites in a map based on its direction
-//TODO NOT BEING USED
+//TODO bgd.spriteMap NOT BEING USED
 func (bgd *background) setPlayerSprites(spriteMapImg pixel.Picture) {
 	bgd.spriteMap = spriteMapImg
 
@@ -208,21 +206,21 @@ func (blk block) draw(t pixel.Target) {
 
 // Draw blocks into the background
 func (bgd *background) draw(t pixel.Target) error {
-	for i := 0; i < len(backgroundMap); i++ {
-		for j := 0; j < len(backgroundMap[0]); j++ {
+	for i := 0; i < len(backgroundMap); i++ {				// Lines
+		for j := 0; j < len(backgroundMap[0]); j++ {	// Columns
 			if backgroundMap[i][j] == 0 {
 				// Don't draw anything, its the path
 			} else if backgroundMap[i][j] == 1 {
-				b:=block{frame: bgd.sprites[0][0], gridX:i, gridY:j, sheet:bgd.spriteMap}
+				b:=block{frame: bgd.sprites[0][0], gridX:(len(backgroundMap) -1 ) -i, gridY:j, sheet:bgd.spriteMap}
 				b.draw(t)
 			} else if backgroundMap[i][j] == 2 {
-				b:=block{frame: bgd.sprites[1][0], gridX:i, gridY:j, sheet:bgd.spriteMap}
+				b:=block{frame: bgd.sprites[1][0], gridX:(len(backgroundMap) -1 ) -i, gridY:j, sheet:bgd.spriteMap}
 				b.draw(t)
 			} else if backgroundMap[i][j] == 3 {
-				b:=block{frame: bgd.sprites[2][0], gridX:i, gridY:j, sheet:bgd.spriteMap}
+				b:=block{frame: bgd.sprites[2][0], gridX:(len(backgroundMap) -1 ) -i, gridY:j, sheet:bgd.spriteMap}
 				b.draw(t)
 			} else if backgroundMap[i][j] == 4 {
-				b:=block{frame: bgd.sprites[3][0], gridX:i, gridY:j, sheet:bgd.spriteMap}
+				b:=block{frame: bgd.sprites[3][0], gridX:(len(backgroundMap) -1 ) -i, gridY:j, sheet:bgd.spriteMap}
 				b.draw(t)
 			}
 		}
@@ -250,12 +248,13 @@ func run() {
 	// Initialize Player data
 	p0 := &player{}
 	// Initial Position
-	p0.grid_pos_X = 1
-	p0.grid_pos_Y = 5
+	p0.grid_pos_X = -1	// Will be 0 after the update with direction RIGHT
+	p0.grid_pos_Y = 7
 	// Load the Player Sprites in a map
 	p0.setPlayerSprites(spriteMap)
 	// Initial Direction
-	direction:=right
+	direction := right	// To identify the initial sprite
+	p0.update(direction)
 
 	// Initialize the background
 	bgd := &background{}
@@ -269,7 +268,7 @@ func run() {
 	for !win.Closed() {
 
 		// Esc to quit program
-    if win.Pressed(pixelgl.KeyEscape) {
+    if win.JustPressed(pixelgl.KeyEscape) {
       break
     }
 
@@ -277,19 +276,25 @@ func run() {
 		win.Clear(colornames.Lightgreen)
 
 		// Update player direction
-		if win.Pressed(pixelgl.KeyLeft) {
+		if win.JustPressed(pixelgl.KeyLeft) {
 			direction = left
+			p0.update(direction)
 		}
-		if win.Pressed(pixelgl.KeyRight) {
+		if win.JustPressed(pixelgl.KeyRight) {
 			direction = right
+			p0.update(direction)
+
 		}
-		if win.Pressed(pixelgl.KeyUp) {
+		if win.JustPressed(pixelgl.KeyUp) {
 			direction = up
+			p0.update(direction)
+
 		}
-		if win.Pressed(pixelgl.KeyDown) {
+		if win.JustPressed(pixelgl.KeyDown) {
 			direction = down
+			p0.update(direction)
+
 		}
-		p0.update(direction)
 
 		// Draw the entire background
 		bgd.draw(imd)
@@ -302,9 +307,6 @@ func run() {
 		// Update the screen
 		win.Update()
 
-		// Control speed of movement
-		// TODO REPLACE BY A TIMER
-		time.Sleep(200 * time.Millisecond)
 	}
 }
 
