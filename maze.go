@@ -51,7 +51,7 @@ const (
 
 // --------- Variables ---------- //
 var (
-
+	direction	Direction
 	// Background
 	// 0 = path
 	// 1 = light green tree		2 = pink tree
@@ -80,8 +80,9 @@ var (
 	// Keyboard
 	keys		map[Direction][]bool
 
-	// COMMANDS
-	binaryCommands string = "111100110111111111"
+	// IA
+	automation	bool = false
+	binaryCommands string = "11110011011111111100010001000000001111111"
 	intCommands	[]Direction
 )
 
@@ -241,6 +242,19 @@ func (bgd *background) draw(t pixel.Target) error {
 }
 
 
+func (p0 *player) restart_player(sprMap pixel.Picture) {
+	// Initialize Player data
+	// p0 := &player{}
+	// Initial Position
+	p0.grid_pos_X = 0
+	p0.grid_pos_Y = 7
+	// Load the Player Sprites in a map
+	p0.setPlayerSprites(sprMap)
+	// Initial Direction
+	direction = right	// To identify the initial sprite
+	p0.currentSprite = p0.sprites[direction][0]
+}
+
 
 // ------------------------ PixelGL Window ------------------------ //
 func run() {
@@ -269,16 +283,9 @@ func run() {
 	// Load the PixelMap Image
 	spriteMap, err := loadPicture("spritemap-rpg.png")
 
-	// Initialize Player data
+	// // Initialize Player data
 	p0 := &player{}
-	// Initial Position
-	p0.grid_pos_X = 0
-	p0.grid_pos_Y = 7
-	// Load the Player Sprites in a map
-	p0.setPlayerSprites(spriteMap)
-	// Initial Direction
-	direction := right	// To identify the initial sprite
-	p0.currentSprite = p0.sprites[direction][0]
+	p0.restart_player(spriteMap)
 
 	// Initialize the background
 	bgd := &background{}
@@ -319,8 +326,17 @@ func run() {
 
 		// ---------- Read and execute commands from IA ---------- //
 
-		if cycle < 9 {
-			keys[intCommands[cycle]][0] = true
+		if automation {
+			if cycle < len(intCommands) {
+				// Execute the command
+				keys[intCommands[cycle]][0] = true
+				// Update cycle
+				cycle ++
+			} else {
+				cycle = 0
+				// Restart game for next individual
+				p0.restart_player(spriteMap)
+			}
 		}
 
 		// ---------------------- Keyboard ---------------------- //
@@ -362,9 +378,6 @@ func run() {
 
 		// Update the screen
 		win.Update()
-
-		// Update cycle
-		cycle ++
 
 	}
 }
