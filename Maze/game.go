@@ -58,17 +58,30 @@ var (
 	// 1 = light green tree		2 = pink tree
 	// 3 = dark green tree		4 = middle green tree
 	// 10 x 10
+	// backgroundMap [][]uint8 = [][]uint8{
+	// 			{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+	// 			{1, 0, 2, 0, 0, 0, 0, 2, 0, 1},
+	// 			{0, 0, 0, 0, 1, 0, 0, 3, 0, 1},
+	// 			{1, 0, 0, 0, 3, 0, 0, 0, 0, 1},
+	// 			{1, 0, 0, 2, 4, 2, 0, 0, 0, 1},
+	// 			{1, 0, 0, 0, 2, 0, 0, 0, 0, 0},
+	// 			{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+	// 			{1, 0, 1, 0, 0, 0, 0, 3, 2, 1},
+	// 			{1, 0, 1, 0, 0, 0, 0, 3, 2, 1},
+	// 			{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+	// }
+	// 15 x 10
 	backgroundMap [][]uint8 = [][]uint8{
-				{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-				{1, 0, 2, 0, 0, 0, 0, 2, 0, 1},
-				{0, 0, 0, 0, 1, 0, 0, 3, 0, 1},
-				{1, 0, 0, 0, 3, 0, 0, 0, 0, 1},
-				{1, 0, 0, 2, 4, 2, 0, 0, 0, 1},
-				{1, 0, 0, 0, 2, 0, 0, 0, 0, 0},
-				{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-				{1, 0, 1, 0, 0, 0, 0, 3, 2, 1},
-				{1, 0, 1, 0, 0, 0, 0, 3, 2, 1},
-				{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+				{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+				{1, 0, 3, 0, 0, 0, 0, 0, 2, 3, 1, 0, 0, 0, 1},
+				{0, 0, 0, 0, 0, 0, 0, 0, 4, 3, 2, 0, 0, 0, 1},
+				{1, 0, 0, 0, 4, 1, 3, 0, 0, 1, 0, 0, 0, 0, 1},
+				{1, 0, 0, 0, 2, 2, 1, 0, 0, 0, 0, 0, 2, 0, 1},
+				{1, 1, 0, 0, 1, 3, 2, 0, 0, 0, 0, 0, 4, 0, 1},
+				{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 2, 3, 0, 1},
+				{1, 0, 1, 3, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0},
+				{1, 0, 2, 4, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 1},
+				{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 	}
 
 	// Grid size is defined by : X = number of objects per line	Y = number of objects in the slice
@@ -85,7 +98,7 @@ var (
 	automation	bool = true
 	intCommands	[]Direction
 
-
+	individual_number int = 0
 	cycle int = 0 // Cycle counter
 )
 
@@ -186,11 +199,24 @@ func (p0 *player) getNewGridPos(direction Direction) (int, int) {
 // Update the direction, position on grid and the current sprite each frame
 func (p0 *player) update(direction Direction) {
 	p0.grid_pos_X, p0.grid_pos_Y = p0.getNewGridPos(direction)
+
+
+
 	p0.currentSprite = p0.sprites[direction][0]
 	// Update Maximum score
-	if p0.grid_pos_X > max_score {
-		max_score = p0.grid_pos_X
+	if p0.grid_pos_X * 100 + ( (gene_number / 2) - cycle  ) > max_score {
+		// max_score = p0.grid_pos_X
+		max_score = p0.grid_pos_X * 100 + ( (gene_number / 2) - cycle  )
+		// fmt.Printf("Gen: %d\tInd: %d\tCycle: %d\tScore: %d\tPos: %d\n", current_generation, individual_number, cycle, max_score, p0.grid_pos_X)
+
+		// Reached the objective!
+		if p0.grid_pos_X == len(backgroundMap[0]) - 1 {
+			fmt.Printf("Chegou em %d!\tIndividual: %d (%s)\tGeneration:%d\tCycle:%d\n", len(backgroundMap[0]) - 1, individual_number, population[individual_number], current_generation, cycle)
+			// os.Exit(2)
+		}
+
 	}
+
 }
 
 
@@ -351,7 +377,6 @@ func Run() {
 
 
 
-	individual_number := 0
 	// Infinite loop
 	for !win.Closed() {
 
@@ -409,6 +434,7 @@ func Run() {
 					population_score = append(population_score, max_score)
 					individual_number ++
 					cycle = 0
+					max_score = 0
 					// Restart game for next individual
 					p0.restart_player(spriteMap)
 				}
