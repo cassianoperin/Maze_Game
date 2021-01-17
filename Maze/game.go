@@ -92,6 +92,7 @@ var (
 	// Score
 	score int = 0
 	max_ind_position int = 0
+	max_ind_position_cycle int = 0
 	max_generation_position int = 0
 
 	// Keyboard
@@ -238,15 +239,35 @@ func (p0 *player) update(direction Direction) {
 
 // Calculate the player's score
 func player_score (max_pos int, cycle int) {
-	var tmp_score float64
-	tmp_score = (float64(max_pos) / float64(cycle)) * 100
+	var (
+		tmp_score float64
+		cycles_needed int
+	)
+
+	cycles_needed = cycle - max_ind_position_cycle
+	// fmt.Printf("Cycle: %d\tcycles needed: %d\t\n",cycle, cycles_needed)
+
+	tmp_score = (float64(max_pos) / float64(cycles_needed)) * 100
 	// fmt.Println(tmp_score)
 	score += int(math.Round(tmp_score))
 
 	// fmt.Printf("Individual: %d (%s)\tGeneration:%d\tNew max_pos: %d\tSteps: %d\tNew Score: %d\n",individual_number, population[individual_number], current_generation, max_pos, cycle, score)
 
+	// Update the cycle of last jump (for next avaliation)
+	max_ind_position_cycle = cycle
+
 }
 
+// // Calculate the player's score
+// func player_score (max_pos int, cycle int) {
+// 	var tmp_score float64
+// 	tmp_score = (float64(max_pos) / float64(cycle)) * 100
+// 	// fmt.Println(tmp_score)
+// 	score += int(math.Round(tmp_score))
+//
+// 	// fmt.Printf("Individual: %d (%s)\tGeneration:%d\tNew max_pos: %d\tSteps: %d\tNew Score: %d\n",individual_number, population[individual_number], current_generation, max_pos, cycle, score)
+//
+// }
 
 
 
@@ -467,6 +488,7 @@ func Run() {
 					cycle = 0
 					score = 0
 					max_ind_position = 0
+					max_ind_position_cycle = 0
 					// Restart game for next individual
 					p0.restart_player(spriteMap)
 				}

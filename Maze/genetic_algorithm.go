@@ -15,10 +15,10 @@ var (
   // Main variables
   population_size int = 100
   gene_number int = 60
-  k = 50 // Tournament size (number of participants)
+  k = 3 // Tournament size (number of participants)
   crossover_rate float64 = 0.7
   mutation_rate float64 = 0.005  // I'm analyzing each gene so the mutation rate should be really small
-  generations int = 300
+  generations int = 100
   current_generation int = 0
   elitism_percentual int = 10  // 10% of population size
 
