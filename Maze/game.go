@@ -5,6 +5,7 @@ import (
 	"fmt"
   "strings"
 	// "time"
+	"math"
 	"image"
 	_ "image/png"
 	"github.com/faiface/pixel"
@@ -89,7 +90,9 @@ var (
 	grid_size_y	int = len(backgroundMap)
 
 	// Score
-	max_score int = 0
+	score int = 0
+	max_ind_position int = 0
+	max_generation_position int = 0
 
 	// Keyboard
 	keys		map[Direction][]bool
@@ -198,18 +201,27 @@ func (p0 *player) getNewGridPos(direction Direction) (int, int) {
 
 // Update the direction, position on grid and the current sprite each frame
 func (p0 *player) update(direction Direction) {
+	// Update grid positiom
 	p0.grid_pos_X, p0.grid_pos_Y = p0.getNewGridPos(direction)
 
-
-
+	// Update current sprite based on direction
 	p0.currentSprite = p0.sprites[direction][0]
-	// Update Maximum score
-	if p0.grid_pos_X * 100 + ( (gene_number / 2) - cycle  ) > max_score {
-		// max_score = p0.grid_pos_X
-		max_score = p0.grid_pos_X * 100 + ( (gene_number / 2) - cycle  )
-		// fmt.Printf("Gen: %d\tInd: %d\tCycle: %d\tScore: %d\tPos: %d\n", current_generation, individual_number, cycle, max_score, p0.grid_pos_X)
 
-		// Reached the objective!
+	// Test if its new generation record:
+	if p0.grid_pos_X > max_generation_position {
+		max_generation_position =  p0.grid_pos_X
+	}
+
+	// Update the Individual Maximum score and check the objective!
+	if p0.grid_pos_X > max_ind_position {
+
+		// Update the new maximum posistion of player
+		max_ind_position = p0.grid_pos_X
+
+		// Add score points
+		player_score(max_ind_position, cycle)
+
+		// Objective reached!!
 		if p0.grid_pos_X == len(backgroundMap[0]) - 1 {
 			fmt.Printf("Chegou em %d!\tIndividual: %d (%s)\tGeneration:%d\tCycle:%d\n", len(backgroundMap[0]) - 1, individual_number, population[individual_number], current_generation, cycle)
 			// os.Exit(2)
@@ -217,7 +229,25 @@ func (p0 *player) update(direction Direction) {
 
 	}
 
+
+
+
+
 }
+
+
+// Calculate the player's score
+func player_score (max_pos int, cycle int) {
+	var tmp_score float64
+	tmp_score = (float64(max_pos) / float64(cycle)) * 100
+	// fmt.Println(tmp_score)
+	score += int(math.Round(tmp_score))
+
+	// fmt.Printf("Individual: %d (%s)\tGeneration:%d\tNew max_pos: %d\tSteps: %d\tNew Score: %d\n",individual_number, population[individual_number], current_generation, max_pos, cycle, score)
+
+}
+
+
 
 
 // -------------------------- Background -------------------------- //
@@ -374,9 +404,6 @@ func Run() {
 	bgd.setPlayerSprites(spriteMap)
 
 
-
-
-
 	// Infinite loop
 	for !win.Closed() {
 
@@ -417,6 +444,7 @@ func Run() {
 			// Check if all individuals from this generation were tested
 			if individual_number < len(population) {
 
+
 				// Clean variables for each individual
 				intCommands = nil
 				// Decode the binary numbers of an individual and convert into commands [0(up), 1(down), 2(left), 3(right)]
@@ -424,6 +452,7 @@ func Run() {
 
 				// Test one command per cycle from each individual
 				if cycle < len(intCommands) {
+
 					// fmt.Printf("Individual: %d: %s\n", individual_number, population[individual_number])
 
 					// Execute the command on keyboard
@@ -431,21 +460,27 @@ func Run() {
 					// Update cycle
 					cycle ++
 				} else {
-					population_score = append(population_score, max_score)
+					// fmt.Printf("%d ",  individual_number)
+
+					population_score = append(population_score, score)
 					individual_number ++
 					cycle = 0
-					max_score = 0
+					score = 0
+					max_ind_position = 0
 					// Restart game for next individual
 					p0.restart_player(spriteMap)
 				}
 
 			} else {
+				// fmt.Printf("\n\nGeneration %d\n", current_generation)
+
 				// fmt.Println(population_score)
 				// fmt.Println(len(population_score))
 				if current_generation < generations {
 					genetic_algorithm()
 					current_generation ++
 					individual_number = 0
+					max_generation_position = 0
 				} else {
 					fmt.Println("Simulation Ended")
 					automation = false
