@@ -39,6 +39,14 @@ type block struct {
   gridY		int
 }
 
+// ---------- Objective --------- //
+type objective_reached struct {
+	generation	int
+  individual	string
+  score	int
+	steps int
+}
+
 // ---------- Constants --------- //
 const (
 	// Window Size
@@ -121,6 +129,9 @@ var (
 
 	// Cycle counter
 	cycle int = 0
+
+	// Objective slice
+	objective []objective_reached
 )
 
 // ----------------------- Common Functions ----------------------- //
@@ -242,7 +253,10 @@ func (object *player) update(direction Direction, player_index int) {
 
 		// Objective reached!!
 		if object.grid_pos_X == len(backgroundMap[0]) - 1 {
-			fmt.Printf("\n\n\n\t\tObjective accomplished!\n\t\tIndividual: %s\tPosition: %d\tMovements: %d\n\n\n", population[player_index], len(backgroundMap[0]) - 1, cycle)
+
+			objective = append(objective, objective_reached{generation: current_generation, individual: population[player_index], score: object.grid_pos_X, steps: cycle})
+
+			// fmt.Printf("\n\n\n\t\tObjective accomplished!\n\t\tIndividual: %s\tPosition: %d\tMovements: %d\n\n\n", population[player_index], len(backgroundMap[0]) - 1, cycle)
 		}
 	}
 	// Punishment
@@ -551,7 +565,29 @@ func Run() {
 					current_generation ++
 					max_generation_position = 0
 				} else {
-					fmt.Println("\nSimulation Ended\n\n")
+					fmt.Printf("\n\n\n|| ---------------------------------- Simulation Ended ---------------------------------- ||\n\nWinners:\n")
+					for i := 0 ; i < len(objective) ; i++ {
+						fmt.Printf("%d\tGen: %d\tIndividual: %s\tScore: %d\tSteps: %d\n", i+1, objective[i].generation, objective[i].individual,  objective[i].score, objective[i].steps )
+					}
+
+					// Calculate the best one (less steps)
+					quickest := gene_number / 2
+					for i := 0 ; i < len(objective) ; i++ {
+						if objective[i].steps < quickest {
+							quickest = objective[i].steps
+						}
+					}
+
+					fmt.Printf("\nBest performances:\n")
+					for i := 0 ; i < len(objective) ; i++ {
+						if objective[i].steps == quickest {
+							fmt.Printf("Gen: %d\tIndividual: %s\tScore: %d\tSteps: %d\n", objective[i].generation, objective[i].individual,  objective[i].score, objective[i].steps )
+						}
+					}
+					fmt.Println()
+
+
+					// Disable automation
 					automation = false
 				}
 			}

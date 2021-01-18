@@ -8,5 +8,6 @@ import (
 // Main function
 func main() {
 
+	// Start Window system
 	pixelgl.Run(Maze.Run)
 }

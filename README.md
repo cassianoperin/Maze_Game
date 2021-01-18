@@ -19,8 +19,9 @@ Cross the screen and reach the empty space on last column at the right.
   - Number of generations (generations)
   - Elitism percentual (elitism_percentual)
 
-## Missing:
+## Next steps:
 - Improve score considering the individual that got the best result in less movements.
+- Create more complex maps.
 
 ## Documentation:
 
