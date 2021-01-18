@@ -4,7 +4,6 @@ import (
 	"os"
 	"fmt"
   "strings"
-	// "time"
 	"math"
 	"image"
 	_ "image/png"
@@ -23,6 +22,9 @@ type player struct {
 	spriteMap	pixel.Picture
 	grid_pos_X	int
 	grid_pos_Y	int
+	score int
+	max_ind_position int
+	max_ind_position_cycle int
 }
 
 // --------- Background --------- //
@@ -53,6 +55,9 @@ const (
 
 // --------- Variables ---------- //
 var (
+	// Slice of players
+	player_list []*player
+
 	direction	Direction
 	// Background
 	// 0 = path
@@ -90,20 +95,21 @@ var (
 	grid_size_y	int = len(backgroundMap)
 
 	// Score
-	score int = 0
-	max_ind_position int = 0
-	max_ind_position_cycle int = 0
+	// score int = 0
+	// max_ind_position int = 0
+	// max_ind_position_cycle int = 0
 	max_generation_position int = 0
 
 	// Keyboard
 	keys		map[Direction][]bool
+	keys2		map[Direction][]bool
 
 	// IA
 	automation	bool = true
-	intCommands	[]Direction
+	commands_matrix	[][]Direction
 
-	individual_number int = 0
-	cycle int = 0 // Cycle counter
+	// Cycle counter
+	cycle int = 0
 )
 
 // ----------------------- Common Functions ----------------------- //
@@ -146,115 +152,111 @@ func getObjectGridPosition(width float64, height float64, grid_x_size int, grid_
 // ---------------------------- Player ---------------------------- //
 
 // Set player sprites in a map based on its direction
-func (p0 *player) setPlayerSprites(spriteMapImg pixel.Picture) {
-	p0.spriteMap = spriteMapImg
+func (object *player) setPlayerSprites(spriteMapImg pixel.Picture) {
+	object.spriteMap = spriteMapImg
 	// X,Y(Size of each pixel), X, Y(Position in spriteMap)
-	p0.sprites = make(map[Direction][]pixel.Rect)
-	p0.sprites[up] = append(p0.sprites[up], setSprite(50, 70, 6, 0))
-	p0.sprites[down] = append(p0.sprites[down], setSprite(50, 70, 6, 3))
-	p0.sprites[left] = append(p0.sprites[left], setSprite(50, 70, 6, 2))
-	p0.sprites[right] = append(p0.sprites[right], setSprite(50, 70, 6, 1))
+	object.sprites = make(map[Direction][]pixel.Rect)
+	object.sprites[up] = append(object.sprites[up], setSprite(50, 70, 6, 0))
+	object.sprites[down] = append(object.sprites[down], setSprite(50, 70, 6, 3))
+	object.sprites[left] = append(object.sprites[left], setSprite(50, 70, 6, 2))
+	object.sprites[right] = append(object.sprites[right], setSprite(50, 70, 6, 1))
 }
 
 // Draw Player on screen
-func (p0 *player) draw(win pixel.Target) {
+// func (p0 *player) draw(win pixel.Target) {
+func (object *player) draw(win pixel.Target) {
 	sprite := pixel.NewSprite(nil, pixel.Rect{})
-	sprite.Set(p0.spriteMap, p0.currentSprite)
-	pos := getObjectGridPosition(screen_width, screen_height, grid_size_x, grid_size_y, p0.grid_pos_X, p0.grid_pos_Y)
+	sprite.Set(object.spriteMap, object.currentSprite)
+	pos := getObjectGridPosition(screen_width, screen_height, grid_size_x, grid_size_y, object.grid_pos_X, object.grid_pos_Y)
 	sprite.Draw(win, pixel.IM.ScaledXY(pixel.ZV, pixel.V(     pos.W()/sprite.Frame().W(),        pos.H()/sprite.Frame().H(),    ) ).Moved(pos.Center()),
 	)
 }
 
 // Update the grid position accordingly to the direction of the next frame
 // Collision Detection
-func (p0 *player) getNewGridPos(direction Direction) (int, int) {
+func (object *player) getNewGridPos(direction Direction) (int, int) {
 	if direction == right {
 		// Keep the player inside the window && just update if there isn't an object on the next move position
-		if p0.grid_pos_X + 1 < grid_size_x  && backgroundMap[len(backgroundMap) - 1 - p0.grid_pos_Y][p0.grid_pos_X + 1] == 0 {
-			p0.grid_pos_X += 1
+		if object.grid_pos_X + 1 < grid_size_x  && backgroundMap[len(backgroundMap) - 1 - object.grid_pos_Y][object.grid_pos_X + 1] == 0 {
+			object.grid_pos_X += 1
 		}
-		return p0.grid_pos_X, p0.grid_pos_Y
+		return object.grid_pos_X, object.grid_pos_Y
 	}
 	// backgroundMap[line][column]
 	if direction == left {
 		// Keep the player inside the window && just update if there isn't an object on the next move position
-		if p0.grid_pos_X - 1 >= 0  && backgroundMap[len(backgroundMap) - 1 - p0.grid_pos_Y][p0.grid_pos_X - 1] == 0{
-			p0.grid_pos_X -= 1
+		if object.grid_pos_X - 1 >= 0  && backgroundMap[len(backgroundMap) - 1 - object.grid_pos_Y][object.grid_pos_X - 1] == 0{
+			object.grid_pos_X -= 1
 		}
-		return p0.grid_pos_X, p0.grid_pos_Y
+		return object.grid_pos_X, object.grid_pos_Y
 	}
 	if direction == up {
 		// Keep the player inside the window && just update if there isn't an object on the next move position
-		if p0.grid_pos_Y + 1 < grid_size_y  && backgroundMap[len(backgroundMap) - 1 - (p0.grid_pos_Y + 1)][p0.grid_pos_X] == 0{
-			p0.grid_pos_Y += 1
+		if object.grid_pos_Y + 1 < grid_size_y  && backgroundMap[len(backgroundMap) - 1 - (object.grid_pos_Y + 1)][object.grid_pos_X] == 0{
+			object.grid_pos_Y += 1
 		}
-		return p0.grid_pos_X, p0.grid_pos_Y
+		return object.grid_pos_X, object.grid_pos_Y
 	}
 	if direction == down {
 		// Keep the player inside the window && just update if there isn't an object on the next move position
-		if p0.grid_pos_Y - 1 >= 0  && backgroundMap[len(backgroundMap) - 1 - (p0.grid_pos_Y - 1)][p0.grid_pos_X] == 0{
-			p0.grid_pos_Y -= 1
+		if object.grid_pos_Y - 1 >= 0  && backgroundMap[len(backgroundMap) - 1 - (object.grid_pos_Y - 1)][object.grid_pos_X] == 0{
+			object.grid_pos_Y -= 1
 		}
-		return p0.grid_pos_X, p0.grid_pos_Y
+		return object.grid_pos_X, object.grid_pos_Y
 	}
-	return p0.grid_pos_X, p0.grid_pos_Y
+	return object.grid_pos_X, object.grid_pos_Y
 }
 
 // Update the direction, position on grid and the current sprite each frame
-func (p0 *player) update(direction Direction) {
+func (object *player) update(direction Direction, player_index int) {
 	// Update grid positiom
-	p0.grid_pos_X, p0.grid_pos_Y = p0.getNewGridPos(direction)
+	object.grid_pos_X, object.grid_pos_Y = object.getNewGridPos(direction)
 
 	// Update current sprite based on direction
-	p0.currentSprite = p0.sprites[direction][0]
+	object.currentSprite = object.sprites[direction][0]
 
 	// Test if its new generation record:
-	if p0.grid_pos_X > max_generation_position {
-		max_generation_position =  p0.grid_pos_X
+	if object.grid_pos_X > max_generation_position {
+		max_generation_position =  object.grid_pos_X
 	}
 
 	// Update the Individual Maximum score and check the objective!
-	if p0.grid_pos_X > max_ind_position {
+	if object.grid_pos_X > object.max_ind_position {
 
 		// Update the new maximum posistion of player
-		max_ind_position = p0.grid_pos_X
+		object.max_ind_position = object.grid_pos_X
 
 		// Add score points
-		player_score(max_ind_position, cycle)
+		player_score(object.max_ind_position, cycle, player_index)
 
 		// Objective reached!!
-		if p0.grid_pos_X == len(backgroundMap[0]) - 1 {
-			fmt.Printf("Chegou em %d!\tIndividual: %d (%s)\tGeneration:%d\tCycle:%d\n", len(backgroundMap[0]) - 1, individual_number, population[individual_number], current_generation, cycle)
-			// os.Exit(2)
+		if object.grid_pos_X == len(backgroundMap[0]) - 1 {
+			fmt.Printf("\n\n\n\t\tObjective accomplished!\n\t\tIndividual: %s\tPosition: %d\tMovements: %d\n\n\n", population[player_index], len(backgroundMap[0]) - 1, cycle)
 		}
 
 	}
-
-
-
-
 
 }
 
 
 // Calculate the player's score
-func player_score (max_pos int, cycle int) {
+func player_score (max_pos int, cycle int, plr_index int) {
 	var (
 		tmp_score float64
 		cycles_needed int
 	)
 
-	cycles_needed = cycle - max_ind_position_cycle
+	cycles_needed = cycle - player_list[plr_index].max_ind_position_cycle
 	// fmt.Printf("Cycle: %d\tcycles needed: %d\t\n",cycle, cycles_needed)
 
 	tmp_score = (float64(max_pos) / float64(cycles_needed)) * 100
 	// fmt.Println(tmp_score)
-	score += int(math.Round(tmp_score))
+	player_list[plr_index].score += int(math.Round(tmp_score))
 
 	// fmt.Printf("Individual: %d (%s)\tGeneration:%d\tNew max_pos: %d\tSteps: %d\tNew Score: %d\n",individual_number, population[individual_number], current_generation, max_pos, cycle, score)
 
 	// Update the cycle of last jump (for next avaliation)
-	max_ind_position_cycle = cycle
+	player_list[plr_index].max_ind_position_cycle = cycle
 
 }
 
@@ -325,48 +327,74 @@ func (bgd *background) draw(t pixel.Target) error {
 }
 
 
-func (p0 *player) restart_player(sprMap pixel.Picture) {
-	// Initialize Player data
-	// p0 := &player{}
+func (*player) restart_player(sprMap pixel.Picture, object *player) {
 	// Initial Position
-	p0.grid_pos_X = 0
-	p0.grid_pos_Y = 7
+	object.grid_pos_X = 0
+	object.grid_pos_Y = 7
 	// Load the Player Sprites in a map
-	p0.setPlayerSprites(sprMap)
+	object.setPlayerSprites(sprMap)
 	// Initial Direction
 	direction = right	// To identify the initial sprite
-	p0.currentSprite = p0.sprites[direction][0]
+	object.currentSprite = object.sprites[direction][0]
+	// Score
+	object.score = 0
+	object.max_ind_position = 0
+	object.max_ind_position_cycle = 0
 }
 
 
 
 
 // Convert the binary string of individuals to commands
-func individualtoCommands(individual string) {
+func individualtoCommands(pop[] string, gene_nr int) [][]Direction {
 
-	individual_split := strings.Split(individual, "")
+	// -------------- Prepare the Multidimensional Slice -------------- //
+	// Declaring a slice of slices with a length of POPULATION
+	commands := make([][]Direction , len(pop))
 
-	// Read individual and transform it to a slice with commands
-	index := 0
-	for i := 0 ; i < len(individual_split) / 2 ; i ++ {
-		command := fmt.Sprintf("%s%s", individual_split[index], individual_split[index+1])
+	// looping through the slice to declare a slice of each slice size
+	for i := 0; i < len(pop); i++ {
 
-		if command == "00" {
-			intCommands = append(intCommands, 0)
-		} else if command == "01" {
-			intCommands = append(intCommands, 1)
-		} else if command == "10" {
-			intCommands = append(intCommands, 2)
-		} else if command == "11" {
-			intCommands = append(intCommands, 3)
-		} else {
-			fmt.Printf("Value unexpected on binary to command conversion, exiting.\n")
-			os.Exit(2)
-		}
+		// Length of each slice shoulg be a half of gene_number (2 digits = 1 command)
+		new_length := gene_nr / 2
 
-		index+=2
+    commands[i] = make([]Direction, new_length)
 	}
 
+	// Print the slice of slices
+	// fmt.Println("Slice of slices: ", commands)
+
+	// ----------------------- Process the data ----------------------- //
+
+	// Decode each individual into commands
+	for i := 0 ; i < len(pop) ; i++ {
+
+		individual_split := strings.Split(pop[i], "")
+
+		// Read individual and transform it to a slice with commands
+		index := 0
+		for j := 0 ; j < len(individual_split) / 2 ; j ++ {
+			code := fmt.Sprintf("%s%s", individual_split[index], individual_split[index+1])
+
+			if code == "00" {
+				commands[i][j] = 0
+			} else if code == "01" {
+				commands[i][j] = 1
+			} else if code == "10" {
+				commands[i][j] = 2
+			} else if code == "11" {
+				commands[i][j] = 3
+			} else {
+				fmt.Printf("Value unexpected on binary to command conversion, exiting.\n")
+				os.Exit(2)
+			}
+
+			index+=2
+		}
+
+	}
+	// fmt.Println(commands)
+	return commands
 }
 
 
@@ -404,25 +432,50 @@ func Run() {
 
 	// ---------------------- Keyboard ---------------------- //
 
-	// X,Y(Size of each pixel), X, Y(Position in spriteMap)
+	// Keyboard used by human user
 	keys = make(map[Direction][]bool)
 	keys[up]		= append(keys[up], false)
 	keys[down]	= append(keys[down], false)
 	keys[left]	= append(keys[left], false)
 	keys[right]	= append(keys[right], false)
 
+
+	// Keyboard used by automations
+	keys2 = make(map[Direction][]bool)
+	for i := 0 ; i < len(population) ; i ++ {
+		keys2[up]		= append(keys2[up], false)
+		keys2[down]	= append(keys2[down], false)
+		keys2[left]	= append(keys2[left], false)
+		keys2[right]	= append(keys2[right], false)
+	}
+
+
 	// ---------------- Player and background --------------- //
 
 	// Load the PixelMap Image
 	spriteMap, err := loadPicture("Maze/spritemap-rpg.png")
 
+
+
+
 	// // Initialize Player data
-	p0 := &player{}
-	p0.restart_player(spriteMap)
+	if automation == false {	// Draw just player0
+		player_list = append(player_list, &player{})
+		player_list[0].restart_player(spriteMap, player_list[0])
+	} else {	// draw all population
+			// Add players accordingly to population
+			for i := 0 ; i < population_size ; i++ {
+				player_list = append(player_list, &player{})
+				player_list[i].restart_player(spriteMap, player_list[i])
+			}
+	}
 
 	// Initialize the background
 	bgd := &background{}
 	bgd.setPlayerSprites(spriteMap)
+
+
+
 
 
 	// Infinite loop
@@ -459,78 +512,163 @@ func Run() {
 
 
 		// ---------- Read and execute commands from IA ---------- //
-
 		if automation {
 
-			// Check if all individuals from this generation were tested
-			if individual_number < len(population) {
+			// Decode all individuals into commands and save it to a Matrix
+			if cycle == 0 {
+				commands_matrix = individualtoCommands(population, gene_number)
+				// fmt.Println(commands_matrix[0])
+				// fmt.Println(commands_matrix)
+			}
 
+			// Loop for all commands available
+			if cycle < len(commands_matrix[0]) {
 
-				// Clean variables for each individual
-				intCommands = nil
-				// Decode the binary numbers of an individual and convert into commands [0(up), 1(down), 2(left), 3(right)]
-				individualtoCommands(population[individual_number])
-
-				// Test one command per cycle from each individual
-				if cycle < len(intCommands) {
-
-					// fmt.Printf("Individual: %d: %s\n", individual_number, population[individual_number])
-
+				// Fill the commands in all virtual keyboards
+				for i := 0 ; i < len(population) ; i ++ {
 					// Execute the command on keyboard
-					keys[intCommands[cycle]][0] = true
-					// Update cycle
-					cycle ++
-				} else {
-					// fmt.Printf("%d ",  individual_number)
 
-					population_score = append(population_score, score)
-					individual_number ++
-					cycle = 0
-					score = 0
-					max_ind_position = 0
-					max_ind_position_cycle = 0
-					// Restart game for next individual
-					p0.restart_player(spriteMap)
+					// UP[0] first player, UP[1] second player...
+					keys2[commands_matrix[i][cycle]][i] = true
 				}
 
-			} else {
-				// fmt.Printf("\n\nGeneration %d\n", current_generation)
+				// Update cycle
+				cycle ++
 
-				// fmt.Println(population_score)
-				// fmt.Println(len(population_score))
+			// Finished all commands for this generation, reset and start again
+			} else {
+
+				// If there are more generations to run
 				if current_generation < generations {
+
+					// Update the Score slice
+					for i := 0 ; i < population_size ; i ++ {
+						population_score = append(population_score, player_list[i].score)
+					}
+
+					// Clean variables for the next generation
+					cycle = 0
+					// // Restart game for next individual
+					for i := 0 ; i < population_size ; i++ {
+						player_list[i].restart_player(spriteMap, player_list[i])
+					}
+
 					genetic_algorithm()
 					current_generation ++
-					individual_number = 0
 					max_generation_position = 0
 				} else {
-					fmt.Println("Simulation Ended")
+					fmt.Println("\nSimulation Ended\n\n")
 					automation = false
 				}
-
-
-
 			}
+
+
+
+
+
+
+
+
+
+			// // Check if all individuals from this generation were tested
+			// if individual_number < len(population) {
+			//
+			//
+			//
+			// 	// Test one command per cycle from each individual
+			// 	if cycle < len(intCommands) {
+			//
+			// 		// fmt.Printf("Individual: %d: %s\n", individual_number, population[individual_number])
+			//
+			// 		// Execute the command on keyboard
+			// 		keys[intCommands[cycle]][0] = true
+			// 		// Update cycle
+			// 		cycle ++
+			// 	} else {
+			// 		// fmt.Printf("%d ",  individual_number)
+			//
+			// 		population_score = append(population_score, score)
+			// 		individual_number ++
+			// 		cycle = 0
+			// 		score = 0
+			// 		max_ind_position = 0
+			// 		max_ind_position_cycle = 0
+			// 		// Restart game for next individual
+			// 		p0.restart_player(spriteMap, p0)
+			// 	}
+			//
+			// } else {
+			//
+			// 	if current_generation < generations {
+			// 		genetic_algorithm()
+			// 		current_generation ++
+			// 		individual_number = 0
+			// 		max_generation_position = 0
+			// 	} else {
+			// 		fmt.Println("Simulation Ended")
+			// 		automation = false
+			// 	}
+			//
+			//
+			//
+			// }
 		}
 
 		// ---------------------- Keyboard ---------------------- //
 
 		// Move Player - Necessary for the automation of player execution
+		// Update player direction and keys pressed
+		if win.JustPressed(pixelgl.KeyUp) {
+			keys[up][0] = true
+		}
+		if win.JustPressed(pixelgl.KeyDown) {
+			keys[down][0] = true
+		}
+		if win.JustPressed(pixelgl.KeyLeft) {
+			keys[left][0] = true
+		}
+		if win.JustPressed(pixelgl.KeyRight) {
+			keys[right][0] = true
+		}
+
+
+
+		// Move Player - Necessary for the automation of player execution
 		if keys[up][0] == true {
 			direction = up
-			p0.update(up)
+			player_list[0].update(up, 0)
 		}
 		if keys[down][0] == true {
 			direction = down
-			p0.update(down)
+			player_list[0].update(down, 0)
 		}
 		if keys[left][0] == true {
 			direction = left
-			p0.update(left)
+			player_list[0].update(left, 0)
 		}
 		if keys[right][0] == true {
 			direction = right
-			p0.update(right)
+			player_list[0].update(right, 0)
+		}
+
+		// Virtual Keyboard for automation
+		for i := 0 ; i < len(population) ; i ++ {
+			if keys2[up][i] == true {
+				direction = up
+				player_list[i].update(up, i)
+			}
+			if keys2[down][i] == true {
+				direction = down
+					player_list[i].update(down, i)
+			}
+			if keys2[left][i] == true {
+				direction = left
+				player_list[i].update(left, i)
+			}
+			if keys2[right][i] == true {
+				direction = right
+				player_list[i].update(right, i)
+			}
 		}
 
 		// Clean key pressed for the next cycle
@@ -539,16 +677,25 @@ func Run() {
 		keys[left][0] = false
 		keys[right][0] = false
 
+		for i := 0 ; i < len(population) ; i ++ {
+			keys2[up][i] = false
+			keys2[down][i] = false
+			keys2[left][i] = false
+			keys2[right][i] = false
+		}
 
 		// -------------------- Draw Objects -------------------- //
 
 		// Draw the entire background
 		bgd.draw(imd)
+
+		// Draw Players on the screen
+		for j := 0 ; j < len(player_list) ; j++ {
+			player_list[j].draw(imd)
+		}
+
 		// Draw with just one draw() call to screen
 		imd.Draw(win)
-
-		// Draw Player on the screen
-		p0.draw(win)
 
 		// Update the screen
 		win.Update()

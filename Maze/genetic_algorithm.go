@@ -14,11 +14,11 @@ import (
 var (
   // Main variables
   population_size int = 100
-  gene_number int = 60
-  k = 3 // Tournament size (number of participants)
+  gene_number int = 80
+  k = 50 // Tournament size (number of participants)
   crossover_rate float64 = 0.7
   mutation_rate float64 = 0.005  // I'm analyzing each gene so the mutation rate should be really small
-  generations int = 100
+  generations int = 1000
   current_generation int = 0
   elitism_percentual int = 10  // 10% of population size
 
@@ -485,21 +485,6 @@ func genetic_algorithm() {
     fmt.Printf("Best Individual: %s\n", best)
     fmt.Printf("Fitness Average: %d\n\n", average_score)
     fmt.Printf("Maximum position: %d\tFitness: %d\n\n", max_generation_position, score)
-
-    // Fill Fitness graphic position vector
-    graph_fitness = append(graph_fitness, score)
-    // Fill Individual mutation graphic position vector
-    graph_mutation_individuals = append(graph_mutation_individuals, mutation_ind_count)
-    // Fill Gene mutation graphic position vector
-    graph_mutation_genes = append(graph_mutation_genes, mutation_count)
-    // Fill Crossover graphic position vector
-    graph_crossover = append(graph_crossover, crossover_count)
-
-    // // Check if the objective is reached by some individual of this generation
-    // if score == gene_number {
-    //   fmt.Printf("\nObjective reached! Fitness = %d on Generation: %d\n", gene_number, current_generation)
-    //   break
-    // }
 
     // Restart Variables
     population_score = nil
