@@ -17,7 +17,7 @@ var (
   gene_number int = 80
   k = 50 // Tournament size (number of participants)
   crossover_rate float64 = 0.7
-  mutation_rate float64 = 0.005  // I'm analyzing each gene so the mutation rate should be really small
+  mutation_rate float64 = 0.05  // I'm analyzing each gene so the mutation rate should be really small
   generations int = 1000
   current_generation int = 0
   elitism_percentual int = 10  // 10% of population size
@@ -27,17 +27,6 @@ var (
   population_score []int
   elitism_individuals int = (elitism_percentual * population_size) / 100
   debug bool = false
-
-  // Graphics
-  sizeX float64 = 1024
-  sizeY float64 = 768
-  graph_fitness []int
-  graph_mutation_individuals []int
-  graph_mutation_genes []int
-  graph_crossover []int
-  // graph []int
-  pixelY_size float64 = (sizeY -100) / float64(gene_number)
-  pixelX_size float64 = (sizeX -100) / float64(generations)
 
   // Counters
   mutation_count, mutation_ind_count int

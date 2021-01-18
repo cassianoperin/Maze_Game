@@ -55,10 +55,14 @@ const (
 
 // --------- Variables ---------- //
 var (
+	// IA
+	automation	bool = true
+	commands_matrix	[][]Direction
+
 	// Slice of players
 	player_list []*player
-
 	direction	Direction
+
 	// Background
 	// 0 = path
 	// 1 = light green tree		2 = pink tree
@@ -76,6 +80,7 @@ var (
 	// 			{1, 0, 1, 0, 0, 0, 0, 3, 2, 1},
 	// 			{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 	// }
+
 	// 15 x 10
 	backgroundMap [][]uint8 = [][]uint8{
 				{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -90,23 +95,29 @@ var (
 				{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 	}
 
+	// // 15 x 10 Empty
+	// backgroundMap [][]uint8 = [][]uint8{
+	// 			{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+	// 			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+	// 			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+	// 			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+	// 			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+	// 			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+	// 			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+	// 			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	// 			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+	// 			{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+	// }
 	// Grid size is defined by : X = number of objects per line	Y = number of objects in the slice
 	grid_size_x	int = len(backgroundMap[0])
 	grid_size_y	int = len(backgroundMap)
 
 	// Score
-	// score int = 0
-	// max_ind_position int = 0
-	// max_ind_position_cycle int = 0
 	max_generation_position int = 0
 
 	// Keyboard
-	keys		map[Direction][]bool
-	keys2		map[Direction][]bool
-
-	// IA
-	automation	bool = true
-	commands_matrix	[][]Direction
+	keyboard_human		map[Direction][]bool	// Human Keyboard
+	keyboard_automations		map[Direction][]bool	// Automation Virtual Keyboards
 
 	// Cycle counter
 	cycle int = 0
@@ -233,8 +244,11 @@ func (object *player) update(direction Direction, player_index int) {
 		if object.grid_pos_X == len(backgroundMap[0]) - 1 {
 			fmt.Printf("\n\n\n\t\tObjective accomplished!\n\t\tIndividual: %s\tPosition: %d\tMovements: %d\n\n\n", population[player_index], len(backgroundMap[0]) - 1, cycle)
 		}
-
 	}
+	// Punishment
+	// } else {
+	// 	object.score -= 10
+	// }
 
 }
 
@@ -247,7 +261,7 @@ func player_score (max_pos int, cycle int, plr_index int) {
 	)
 
 	cycles_needed = cycle - player_list[plr_index].max_ind_position_cycle
-	// fmt.Printf("Cycle: %d\tcycles needed: %d\t\n",cycle, cycles_needed)
+	// fmt.Printf("Player %d\tCycle: %d\tMaxPos: %d\tcycles needed: %d\t\n",plr_index, cycle, max_pos, cycles_needed)
 
 	tmp_score = (float64(max_pos) / float64(cycles_needed)) * 100
 	// fmt.Println(tmp_score)
@@ -259,18 +273,6 @@ func player_score (max_pos int, cycle int, plr_index int) {
 	player_list[plr_index].max_ind_position_cycle = cycle
 
 }
-
-// // Calculate the player's score
-// func player_score (max_pos int, cycle int) {
-// 	var tmp_score float64
-// 	tmp_score = (float64(max_pos) / float64(cycle)) * 100
-// 	// fmt.Println(tmp_score)
-// 	score += int(math.Round(tmp_score))
-//
-// 	// fmt.Printf("Individual: %d (%s)\tGeneration:%d\tNew max_pos: %d\tSteps: %d\tNew Score: %d\n",individual_number, population[individual_number], current_generation, max_pos, cycle, score)
-//
-// }
-
 
 
 // -------------------------- Background -------------------------- //
@@ -361,9 +363,6 @@ func individualtoCommands(pop[] string, gene_nr int) [][]Direction {
     commands[i] = make([]Direction, new_length)
 	}
 
-	// Print the slice of slices
-	// fmt.Println("Slice of slices: ", commands)
-
 	// ----------------------- Process the data ----------------------- //
 
 	// Decode each individual into commands
@@ -393,7 +392,6 @@ func individualtoCommands(pop[] string, gene_nr int) [][]Direction {
 		}
 
 	}
-	// fmt.Println(commands)
 	return commands
 }
 
@@ -433,20 +431,20 @@ func Run() {
 	// ---------------------- Keyboard ---------------------- //
 
 	// Keyboard used by human user
-	keys = make(map[Direction][]bool)
-	keys[up]		= append(keys[up], false)
-	keys[down]	= append(keys[down], false)
-	keys[left]	= append(keys[left], false)
-	keys[right]	= append(keys[right], false)
+	keyboard_human = make(map[Direction][]bool)
+	keyboard_human[up]		= append(keyboard_human[up], false)
+	keyboard_human[down]	= append(keyboard_human[down], false)
+	keyboard_human[left]	= append(keyboard_human[left], false)
+	keyboard_human[right]	= append(keyboard_human[right], false)
 
 
 	// Keyboard used by automations
-	keys2 = make(map[Direction][]bool)
+	keyboard_automations = make(map[Direction][]bool)
 	for i := 0 ; i < len(population) ; i ++ {
-		keys2[up]		= append(keys2[up], false)
-		keys2[down]	= append(keys2[down], false)
-		keys2[left]	= append(keys2[left], false)
-		keys2[right]	= append(keys2[right], false)
+		keyboard_automations[up]		= append(keyboard_automations[up], false)
+		keyboard_automations[down]	= append(keyboard_automations[down], false)
+		keyboard_automations[left]	= append(keyboard_automations[left], false)
+		keyboard_automations[right]	= append(keyboard_automations[right], false)
 	}
 
 
@@ -484,8 +482,6 @@ func Run() {
 		// Draw all background objects first to this object and just draw to window one time later
 		imd := imdraw.New(spriteMap)
 
-		// fmt.Printf("Cycle: %d\n", cycle)
-
 		// Esc to quit program
     if win.JustPressed(pixelgl.KeyEscape) {
       break
@@ -498,16 +494,16 @@ func Run() {
 
 		// Update player direction and keys pressed
 		if win.JustPressed(pixelgl.KeyUp) {
-			keys[up][0] = true
+			keyboard_human[up][0] = true
 		}
 		if win.JustPressed(pixelgl.KeyDown) {
-			keys[down][0] = true
+			keyboard_human[down][0] = true
 		}
 		if win.JustPressed(pixelgl.KeyLeft) {
-			keys[left][0] = true
+			keyboard_human[left][0] = true
 		}
 		if win.JustPressed(pixelgl.KeyRight) {
-			keys[right][0] = true
+			keyboard_human[right][0] = true
 		}
 
 
@@ -517,8 +513,6 @@ func Run() {
 			// Decode all individuals into commands and save it to a Matrix
 			if cycle == 0 {
 				commands_matrix = individualtoCommands(population, gene_number)
-				// fmt.Println(commands_matrix[0])
-				// fmt.Println(commands_matrix)
 			}
 
 			// Loop for all commands available
@@ -529,7 +523,7 @@ func Run() {
 					// Execute the command on keyboard
 
 					// UP[0] first player, UP[1] second player...
-					keys2[commands_matrix[i][cycle]][i] = true
+					keyboard_automations[commands_matrix[i][cycle]][i] = true
 				}
 
 				// Update cycle
@@ -562,56 +556,6 @@ func Run() {
 				}
 			}
 
-
-
-
-
-
-
-
-
-			// // Check if all individuals from this generation were tested
-			// if individual_number < len(population) {
-			//
-			//
-			//
-			// 	// Test one command per cycle from each individual
-			// 	if cycle < len(intCommands) {
-			//
-			// 		// fmt.Printf("Individual: %d: %s\n", individual_number, population[individual_number])
-			//
-			// 		// Execute the command on keyboard
-			// 		keys[intCommands[cycle]][0] = true
-			// 		// Update cycle
-			// 		cycle ++
-			// 	} else {
-			// 		// fmt.Printf("%d ",  individual_number)
-			//
-			// 		population_score = append(population_score, score)
-			// 		individual_number ++
-			// 		cycle = 0
-			// 		score = 0
-			// 		max_ind_position = 0
-			// 		max_ind_position_cycle = 0
-			// 		// Restart game for next individual
-			// 		p0.restart_player(spriteMap, p0)
-			// 	}
-			//
-			// } else {
-			//
-			// 	if current_generation < generations {
-			// 		genetic_algorithm()
-			// 		current_generation ++
-			// 		individual_number = 0
-			// 		max_generation_position = 0
-			// 	} else {
-			// 		fmt.Println("Simulation Ended")
-			// 		automation = false
-			// 	}
-			//
-			//
-			//
-			// }
 		}
 
 		// ---------------------- Keyboard ---------------------- //
@@ -619,69 +563,69 @@ func Run() {
 		// Move Player - Necessary for the automation of player execution
 		// Update player direction and keys pressed
 		if win.JustPressed(pixelgl.KeyUp) {
-			keys[up][0] = true
+			keyboard_human[up][0] = true
 		}
 		if win.JustPressed(pixelgl.KeyDown) {
-			keys[down][0] = true
+			keyboard_human[down][0] = true
 		}
 		if win.JustPressed(pixelgl.KeyLeft) {
-			keys[left][0] = true
+			keyboard_human[left][0] = true
 		}
 		if win.JustPressed(pixelgl.KeyRight) {
-			keys[right][0] = true
+			keyboard_human[right][0] = true
 		}
-
 
 
 		// Move Player - Necessary for the automation of player execution
-		if keys[up][0] == true {
+		if keyboard_human[up][0] == true {
 			direction = up
 			player_list[0].update(up, 0)
 		}
-		if keys[down][0] == true {
+		if keyboard_human[down][0] == true {
 			direction = down
 			player_list[0].update(down, 0)
 		}
-		if keys[left][0] == true {
+		if keyboard_human[left][0] == true {
 			direction = left
 			player_list[0].update(left, 0)
 		}
-		if keys[right][0] == true {
+		if keyboard_human[right][0] == true {
 			direction = right
 			player_list[0].update(right, 0)
 		}
 
 		// Virtual Keyboard for automation
+		// Move Automated Players - Necessary for the automation of player execution
 		for i := 0 ; i < len(population) ; i ++ {
-			if keys2[up][i] == true {
+			if keyboard_automations[up][i] == true {
 				direction = up
 				player_list[i].update(up, i)
 			}
-			if keys2[down][i] == true {
+			if keyboard_automations[down][i] == true {
 				direction = down
 					player_list[i].update(down, i)
 			}
-			if keys2[left][i] == true {
+			if keyboard_automations[left][i] == true {
 				direction = left
 				player_list[i].update(left, i)
 			}
-			if keys2[right][i] == true {
+			if keyboard_automations[right][i] == true {
 				direction = right
 				player_list[i].update(right, i)
 			}
 		}
 
 		// Clean key pressed for the next cycle
-		keys[up][0] = false
-		keys[down][0] = false
-		keys[left][0] = false
-		keys[right][0] = false
+		keyboard_human[up][0] = false
+		keyboard_human[down][0] = false
+		keyboard_human[left][0] = false
+		keyboard_human[right][0] = false
 
 		for i := 0 ; i < len(population) ; i ++ {
-			keys2[up][i] = false
-			keys2[down][i] = false
-			keys2[left][i] = false
-			keys2[right][i] = false
+			keyboard_automations[up][i] = false
+			keyboard_automations[down][i] = false
+			keyboard_automations[left][i] = false
+			keyboard_automations[right][i] = false
 		}
 
 		// -------------------- Draw Objects -------------------- //
