@@ -8,35 +8,6 @@ Cross the screen and reach the empty space on last column at the right.
 :-------------------------:|:-------------------------:
 <img width="430" alt="horizontal" src="https://github.com/cassianoperin/Maze_Game/blob/main/Images/maze-human.png">  |  <img width="430" alt="vertical" src="https://github.com/cassianoperin/Maze_Game/blob/main/Images/maze-automations.gif">
 
-## Compile
-
-### MAC
-`export GO111MODULE=off`
-`go get github.com/faiface/pixel`
-`go get github.com/faiface/glhf`
-`go get github.com/go-gl/glfw/v3.3/glfw`
-`go get gopkg.in/ini.v1`
-`go build`
-
-#### Instructions to pack into Mac executable:
-1) Baixar o binário
-https://github.com/kindlychung/genicon
-
-2) Install dependency:
-brew install imagemagick
-
-3) Create the icon based on a PNG image
-`./genicon icon.png tmp_folder`
-
-4) Rename the folder mv AppIcon.appiconset AppIcon.iconset
-
-5) Create the icon in the format needed by Mac executable
-iconutil -c icns -o icon.icns AppIcon.iconset
-
-
-### WINDOWS
-TO DO
-
 ## Usage
 1)  After the first execution, the program will create an ini file named '.maze.ini' into user home folder
   - To execute the game, set the value 'Automation' to false, otherwise, it will start in simulation mode
@@ -61,6 +32,40 @@ TO DO
 - Translate the individual into arrows
 - Reactivate the background drawing (game.go) it efficiently
 - Put the debug into the down side of screen
+
+## Compile
+
+### MAC
+`export GO111MODULE=off`
+
+`go get github.com/faiface/pixel`
+
+`go get github.com/faiface/glhf`
+
+`go get github.com/go-gl/glfw/v3.3/glfw`
+
+`go get gopkg.in/ini.v1`
+
+`go build`
+
+#### Instructions to pack into Mac executable:
+1) Baixar o binário
+https://github.com/kindlychung/genicon
+
+2) Install dependency:
+brew install imagemagick
+
+3) Create the icon based on a PNG image
+`./genicon icon.png tmp_folder`
+
+4) Rename the folder mv AppIcon.appiconset AppIcon.iconset
+
+5) Create the icon in the format needed by Mac executable
+iconutil -c icns -o icon.icns AppIcon.iconset
+
+
+### WINDOWS
+TO DO
 
 
 ## Documentation:
