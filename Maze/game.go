@@ -1,50 +1,53 @@
 package Maze
 
 import (
-	"os"
 	"fmt"
-  "strings"
-	"math"
 	"image"
 	_ "image/png"
+	"math"
+	"os"
+	"strings"
+
 	"github.com/faiface/pixel"
-	"github.com/faiface/pixel/pixelgl"
 	"github.com/faiface/pixel/imdraw"
+	"github.com/faiface/pixel/pixelgl"
+	"github.com/faiface/pixel/text"
 	"golang.org/x/image/colornames"
+	"golang.org/x/image/font/basicfont"
 )
 
 // ----------- Player ----------- //
 type Direction int
 
 type player struct {
-	sprites		map[Direction][]pixel.Rect
-	currentSprite	pixel.Rect
-	spriteMap	pixel.Picture
-	grid_pos_X	int
-	grid_pos_Y	int
-	score int
-	max_ind_position int
+	sprites                map[Direction][]pixel.Rect
+	currentSprite          pixel.Rect
+	spriteMap              pixel.Picture
+	grid_pos_X             int
+	grid_pos_Y             int
+	score                  int
+	max_ind_position       int
 	max_ind_position_cycle int
 }
 
 // --------- Background --------- //
 type background struct {
-	sprites		map[int][]pixel.Rect
+	sprites map[int][]pixel.Rect
 }
 
 type block struct {
-  currentSprite	pixel.Rect
-  spriteMap	pixel.Picture
-  gridX		int
-  gridY		int
+	currentSprite pixel.Rect
+	spriteMap     pixel.Picture
+	gridX         int
+	gridY         int
 }
 
 // ---------- Objective --------- //
 type objective_reached struct {
-	generation	int
-  individual	string
-  score	int
-	steps int
+	generation int
+	individual string
+	score      int
+	steps      int
 }
 
 // ---------- Constants --------- //
@@ -54,84 +57,50 @@ const (
 	screen_width  = 800
 
 	// Directions
-	up	Direction = 0
-	down	Direction = 1
-	left	Direction = 2
-	right	Direction = 3
-
+	up    Direction = 0
+	down  Direction = 1
+	left  Direction = 2
+	right Direction = 3
 )
 
 // --------- Variables ---------- //
 var (
 	// IA
-	automation	bool = true
-	commands_matrix	[][]Direction
+	Automation      bool = false
+	commands_matrix [][]Direction
 
 	// Slice of players
 	player_list []*player
-	direction	Direction
+	direction   Direction
 
 	// Background
-	// 0 = path
-	// 1 = light green tree		2 = pink tree
-	// 3 = dark green tree		4 = middle green tree
-	// 10 x 10
-	// backgroundMap [][]uint8 = [][]uint8{
-	// 			{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-	// 			{1, 0, 2, 0, 0, 0, 0, 2, 0, 1},
-	// 			{0, 0, 0, 0, 1, 0, 0, 3, 0, 1},
-	// 			{1, 0, 0, 0, 3, 0, 0, 0, 0, 1},
-	// 			{1, 0, 0, 2, 4, 2, 0, 0, 0, 1},
-	// 			{1, 0, 0, 0, 2, 0, 0, 0, 0, 0},
-	// 			{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	// 			{1, 0, 1, 0, 0, 0, 0, 3, 2, 1},
-	// 			{1, 0, 1, 0, 0, 0, 0, 3, 2, 1},
-	// 			{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-	// }
-
-	// 15 x 10
-	backgroundMap [][]uint8 = [][]uint8{
-				{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-				{1, 0, 3, 0, 0, 0, 0, 0, 2, 3, 1, 0, 0, 0, 1},
-				{0, 0, 0, 0, 0, 0, 0, 0, 4, 3, 2, 0, 0, 0, 1},
-				{1, 0, 0, 0, 4, 1, 3, 0, 0, 1, 0, 0, 0, 0, 1},
-				{1, 0, 0, 0, 2, 2, 1, 0, 0, 0, 0, 0, 2, 0, 1},
-				{1, 1, 0, 0, 1, 3, 2, 0, 0, 0, 0, 0, 4, 0, 1},
-				{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 2, 3, 0, 1},
-				{1, 0, 1, 3, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0},
-				{1, 0, 2, 4, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 1},
-				{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-	}
-
-	// // 15 x 10 Empty
-	// backgroundMap [][]uint8 = [][]uint8{
-	// 			{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-	// 			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	// 			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	// 			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	// 			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	// 			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	// 			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	// 			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	// 			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	// 			{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-	// }
+	backgroundMap [][]uint8
 	// Grid size is defined by : X = number of objects per line	Y = number of objects in the slice
-	grid_size_x	int = len(backgroundMap[0])
-	grid_size_y	int = len(backgroundMap)
+	grid_size_x       int
+	grid_size_y       int
+	map_best_solution int
 
 	// Score
 	max_generation_position int = 0
 
 	// Keyboard
-	keyboard_human		map[Direction][]bool	// Human Keyboard
-	keyboard_automations		map[Direction][]bool	// Automation Virtual Keyboards
+	keyboard_human       map[Direction][]bool // Human Keyboard
+	keyboard_automations map[Direction][]bool // Automation Virtual Keyboards
 
 	// Cycle counter
 	cycle int = 0
 
 	// Objective slice
 	objective []objective_reached
+
+	// Simulation finish and show results
+	simlation_finished bool = false
+
+	// Fonts
+	atlas = text.NewAtlas(basicfont.Face7x13, text.ASCII)
+
+	// Screen messages
+	textMessage *text.Text // On screen Message content
 )
 
 // ----------------------- Common Functions ----------------------- //
@@ -165,11 +134,12 @@ func setSprite(spriteWidth float64, spriteHeight float64, posX int, posY int) pi
 
 // Get the coordinates to draw objects on screen
 func getObjectGridPosition(width float64, height float64, grid_x_size int, grid_y_size int, x int, y int) pixel.Rect {
+	// gridWidth := width / float64(grid_x_size)
+	// gridHeight := height / float64(grid_y_size)
 	gridWidth := width / float64(grid_x_size)
 	gridHeight := height / float64(grid_y_size)
 	return pixel.R(float64(x)*gridWidth, float64(y)*gridHeight, float64((x+1))*gridWidth, float64((y+1))*gridHeight)
 }
-
 
 // ---------------------------- Player ---------------------------- //
 
@@ -190,8 +160,7 @@ func (object *player) draw(win pixel.Target) {
 	sprite := pixel.NewSprite(nil, pixel.Rect{})
 	sprite.Set(object.spriteMap, object.currentSprite)
 	pos := getObjectGridPosition(screen_width, screen_height, grid_size_x, grid_size_y, object.grid_pos_X, object.grid_pos_Y)
-	sprite.Draw(win, pixel.IM.ScaledXY(pixel.ZV, pixel.V(     pos.W()/sprite.Frame().W(),        pos.H()/sprite.Frame().H(),    ) ).Moved(pos.Center()),
-	)
+	sprite.Draw(win, pixel.IM.ScaledXY(pixel.ZV, pixel.V(pos.W()/sprite.Frame().W(), pos.H()/sprite.Frame().H())).Moved(pos.Center()))
 }
 
 // Update the grid position accordingly to the direction of the next frame
@@ -199,7 +168,7 @@ func (object *player) draw(win pixel.Target) {
 func (object *player) getNewGridPos(direction Direction) (int, int) {
 	if direction == right {
 		// Keep the player inside the window && just update if there isn't an object on the next move position
-		if object.grid_pos_X + 1 < grid_size_x  && backgroundMap[len(backgroundMap) - 1 - object.grid_pos_Y][object.grid_pos_X + 1] == 0 {
+		if object.grid_pos_X+1 < grid_size_x && backgroundMap[len(backgroundMap)-1-object.grid_pos_Y][object.grid_pos_X+1] == 0 {
 			object.grid_pos_X += 1
 		}
 		return object.grid_pos_X, object.grid_pos_Y
@@ -207,21 +176,21 @@ func (object *player) getNewGridPos(direction Direction) (int, int) {
 	// backgroundMap[line][column]
 	if direction == left {
 		// Keep the player inside the window && just update if there isn't an object on the next move position
-		if object.grid_pos_X - 1 >= 0  && backgroundMap[len(backgroundMap) - 1 - object.grid_pos_Y][object.grid_pos_X - 1] == 0{
+		if object.grid_pos_X-1 >= 0 && backgroundMap[len(backgroundMap)-1-object.grid_pos_Y][object.grid_pos_X-1] == 0 {
 			object.grid_pos_X -= 1
 		}
 		return object.grid_pos_X, object.grid_pos_Y
 	}
 	if direction == up {
 		// Keep the player inside the window && just update if there isn't an object on the next move position
-		if object.grid_pos_Y + 1 < grid_size_y  && backgroundMap[len(backgroundMap) - 1 - (object.grid_pos_Y + 1)][object.grid_pos_X] == 0{
+		if object.grid_pos_Y+1 < grid_size_y && backgroundMap[len(backgroundMap)-1-(object.grid_pos_Y+1)][object.grid_pos_X] == 0 {
 			object.grid_pos_Y += 1
 		}
 		return object.grid_pos_X, object.grid_pos_Y
 	}
 	if direction == down {
 		// Keep the player inside the window && just update if there isn't an object on the next move position
-		if object.grid_pos_Y - 1 >= 0  && backgroundMap[len(backgroundMap) - 1 - (object.grid_pos_Y - 1)][object.grid_pos_X] == 0{
+		if object.grid_pos_Y-1 >= 0 && backgroundMap[len(backgroundMap)-1-(object.grid_pos_Y-1)][object.grid_pos_X] == 0 {
 			object.grid_pos_Y -= 1
 		}
 		return object.grid_pos_X, object.grid_pos_Y
@@ -239,7 +208,7 @@ func (object *player) update(direction Direction, player_index int) {
 
 	// Test if its new generation record:
 	if object.grid_pos_X > max_generation_position {
-		max_generation_position =  object.grid_pos_X
+		max_generation_position = object.grid_pos_X
 	}
 
 	// Update the Individual Maximum score and check the objective!
@@ -252,7 +221,7 @@ func (object *player) update(direction Direction, player_index int) {
 		player_score(object.max_ind_position, cycle, player_index)
 
 		// Objective reached!!
-		if object.grid_pos_X == len(backgroundMap[0]) - 1 {
+		if object.grid_pos_X == len(backgroundMap[0])-1 {
 
 			objective = append(objective, objective_reached{generation: current_generation, individual: population[player_index], score: object.grid_pos_X, steps: cycle})
 
@@ -266,11 +235,10 @@ func (object *player) update(direction Direction, player_index int) {
 
 }
 
-
 // Calculate the player's score
-func player_score (max_pos int, cycle int, plr_index int) {
+func player_score(max_pos int, cycle int, plr_index int) {
 	var (
-		tmp_score float64
+		tmp_score     float64
 		cycles_needed int
 	)
 
@@ -288,7 +256,6 @@ func player_score (max_pos int, cycle int, plr_index int) {
 
 }
 
-
 // -------------------------- Background -------------------------- //
 
 // Set board sprites in a map based on its direction
@@ -305,43 +272,45 @@ func (bgd *background) setPlayerSprites(spriteMapImg pixel.Picture) {
 
 // Draw a single block of the background
 func (blk block) draw(t pixel.Target) {
-    sprite := pixel.NewSprite(nil, pixel.Rect{})
-    sprite.Set(blk.spriteMap, blk.currentSprite)
-    pos := getObjectGridPosition(screen_width, screen_height, len(backgroundMap[0]), len(backgroundMap), blk.gridY, blk.gridX)
+	sprite := pixel.NewSprite(nil, pixel.Rect{})
+	sprite.Set(blk.spriteMap, blk.currentSprite)
+	pos := getObjectGridPosition(screen_width, screen_height, len(backgroundMap[0]), len(backgroundMap), blk.gridY, blk.gridX)
 
-    sprite.Draw(t, pixel.IM.
-        ScaledXY(pixel.ZV, pixel.V(
-            pos.W()/sprite.Frame().W(),
-            pos.H()/sprite.Frame().H(),
-        )).
-        Moved(pos.Center()),
-    )
+	sprite.Draw(t, pixel.IM.
+		ScaledXY(pixel.ZV, pixel.V(
+			pos.W()/sprite.Frame().W(),
+			pos.H()/sprite.Frame().H(),
+		)).
+		Moved(pos.Center()),
+	)
 }
 
 // Draw blocks into the background
 func (bgd *background) draw(t pixel.Target) error {
-	for i := 0; i < len(backgroundMap); i++ {				// Lines
-		for j := 0; j < len(backgroundMap[0]); j++ {	// Columns
+	for i := 0; i < len(backgroundMap); i++ { // Lines
+		for j := 0; j < len(backgroundMap[0]); j++ { // Columns
 			if backgroundMap[i][j] == 0 {
 				// Don't draw anything, its the path
 			} else if backgroundMap[i][j] == 1 {
-				b:=block{currentSprite: bgd.sprites[0][0], gridX:(len(backgroundMap) -1 ) -i, gridY:j}
+				b := block{currentSprite: bgd.sprites[0][0], gridX: (len(backgroundMap) - 1) - i, gridY: j}
 				b.draw(t)
 			} else if backgroundMap[i][j] == 2 {
-				b:=block{currentSprite: bgd.sprites[1][0], gridX:(len(backgroundMap) -1 ) -i, gridY:j}
+				b := block{currentSprite: bgd.sprites[1][0], gridX: (len(backgroundMap) - 1) - i, gridY: j}
 				b.draw(t)
 			} else if backgroundMap[i][j] == 3 {
-				b:=block{currentSprite: bgd.sprites[2][0], gridX:(len(backgroundMap) -1 ) -i, gridY:j}
+				b := block{currentSprite: bgd.sprites[2][0], gridX: (len(backgroundMap) - 1) - i, gridY: j}
 				b.draw(t)
 			} else if backgroundMap[i][j] == 4 {
-				b:=block{currentSprite: bgd.sprites[3][0], gridX:(len(backgroundMap) -1 ) -i, gridY:j}
+				b := block{currentSprite: bgd.sprites[3][0], gridX: (len(backgroundMap) - 1) - i, gridY: j}
+				b.draw(t)
+			} else if backgroundMap[i][j] == 5 {
+				b := block{currentSprite: bgd.sprites[4][0], gridX: (len(backgroundMap) - 1) - i, gridY: j}
 				b.draw(t)
 			}
 		}
 	}
 	return nil
 }
-
 
 func (*player) restart_player(sprMap pixel.Picture, object *player) {
 	// Initial Position
@@ -350,7 +319,7 @@ func (*player) restart_player(sprMap pixel.Picture, object *player) {
 	// Load the Player Sprites in a map
 	object.setPlayerSprites(sprMap)
 	// Initial Direction
-	direction = right	// To identify the initial sprite
+	direction = right // To identify the initial sprite
 	object.currentSprite = object.sprites[direction][0]
 	// Score
 	object.score = 0
@@ -358,35 +327,32 @@ func (*player) restart_player(sprMap pixel.Picture, object *player) {
 	object.max_ind_position_cycle = 0
 }
 
-
-
-
 // Convert the binary string of individuals to commands
-func individualtoCommands(pop[] string, gene_nr int) [][]Direction {
+func individualtoCommands(pop []string, gene_nr int) [][]Direction {
 
 	// -------------- Prepare the Multidimensional Slice -------------- //
 	// Declaring a slice of slices with a length of POPULATION
-	commands := make([][]Direction , len(pop))
+	commands := make([][]Direction, len(pop))
 
 	// looping through the slice to declare a slice of each slice size
 	for i := 0; i < len(pop); i++ {
 
-		// Length of each slice shoulg be a half of gene_number (2 digits = 1 command)
+		// Length of each slice shoulg be a half of Gene_number (2 digits = 1 command)
 		new_length := gene_nr / 2
 
-    commands[i] = make([]Direction, new_length)
+		commands[i] = make([]Direction, new_length)
 	}
 
 	// ----------------------- Process the data ----------------------- //
 
 	// Decode each individual into commands
-	for i := 0 ; i < len(pop) ; i++ {
+	for i := 0; i < len(pop); i++ {
 
 		individual_split := strings.Split(pop[i], "")
 
 		// Read individual and transform it to a slice with commands
 		index := 0
-		for j := 0 ; j < len(individual_split) / 2 ; j ++ {
+		for j := 0; j < len(individual_split)/2; j++ {
 			code := fmt.Sprintf("%s%s", individual_split[index], individual_split[index+1])
 
 			if code == "00" {
@@ -402,16 +368,12 @@ func individualtoCommands(pop[] string, gene_nr int) [][]Direction {
 				os.Exit(2)
 			}
 
-			index+=2
+			index += 2
 		}
 
 	}
 	return commands
 }
-
-
-
-
 
 // ------------------------ PixelGL Window ------------------------ //
 func Run() {
@@ -434,61 +396,95 @@ func Run() {
 	// ------------------------- IA ------------------------- //
 
 	// Validate parameters
-	validate_parameters(population_size, k)
+	validate_parameters(Population_size, K)
 
 	// 0 - Generate the population
 	// Generate each individual for population
-	for i := 0 ; i < population_size ; i++ {
-	  population = append( population, generate_individuals(gene_number) )
+	for i := 0; i < Population_size; i++ {
+		population = append(population, generate_individuals(Gene_number))
 	}
 
 	// ---------------------- Keyboard ---------------------- //
 
 	// Keyboard used by human user
 	keyboard_human = make(map[Direction][]bool)
-	keyboard_human[up]		= append(keyboard_human[up], false)
-	keyboard_human[down]	= append(keyboard_human[down], false)
-	keyboard_human[left]	= append(keyboard_human[left], false)
-	keyboard_human[right]	= append(keyboard_human[right], false)
-
+	keyboard_human[up] = append(keyboard_human[up], false)
+	keyboard_human[down] = append(keyboard_human[down], false)
+	keyboard_human[left] = append(keyboard_human[left], false)
+	keyboard_human[right] = append(keyboard_human[right], false)
 
 	// Keyboard used by automations
 	keyboard_automations = make(map[Direction][]bool)
-	for i := 0 ; i < len(population) ; i ++ {
-		keyboard_automations[up]		= append(keyboard_automations[up], false)
-		keyboard_automations[down]	= append(keyboard_automations[down], false)
-		keyboard_automations[left]	= append(keyboard_automations[left], false)
-		keyboard_automations[right]	= append(keyboard_automations[right], false)
+	for i := 0; i < len(population); i++ {
+		keyboard_automations[up] = append(keyboard_automations[up], false)
+		keyboard_automations[down] = append(keyboard_automations[down], false)
+		keyboard_automations[left] = append(keyboard_automations[left], false)
+		keyboard_automations[right] = append(keyboard_automations[right], false)
 	}
 
+	// ------------------- Define the map ------------------- //
+
+	if Automation {
+		if Maze_map == 0 {
+			backgroundMap = backgroundMap_0_automate
+			map_best_solution = backgroundMap_0_best_solution
+		} else if Maze_map == 1 {
+			backgroundMap = backgroundMap_1_automate
+			map_best_solution = backgroundMap_1_best_solution
+		} else if Maze_map == 2 {
+			backgroundMap = backgroundMap_2_automate
+			map_best_solution = backgroundMap_2_best_solution
+		} else if Maze_map == 3 {
+			backgroundMap = backgroundMap_3_automate
+			map_best_solution = backgroundMap_3_best_solution
+		} else {
+			fmt.Printf("Map %d not found! Exiting.\n", Maze_map)
+			os.Exit(2)
+		}
+
+	} else {
+		if Maze_map == 0 {
+			backgroundMap = backgroundMap_0
+			map_best_solution = backgroundMap_0_best_solution
+		} else if Maze_map == 1 {
+			backgroundMap = backgroundMap_1
+			map_best_solution = backgroundMap_1_best_solution
+		} else if Maze_map == 2 {
+			backgroundMap = backgroundMap_2
+			map_best_solution = backgroundMap_2_best_solution
+		} else if Maze_map == 3 {
+			backgroundMap = backgroundMap_3
+			map_best_solution = backgroundMap_3_best_solution
+		} else {
+			fmt.Printf("Map %d not found! Exiting.\n", Maze_map)
+			os.Exit(2)
+		}
+	}
+
+	// Calculate the size of the grid according to map selected
+	grid_size_x = len(backgroundMap[0])
+	grid_size_y = len(backgroundMap)
 
 	// ---------------- Player and background --------------- //
 
 	// Load the PixelMap Image
-	spriteMap, err := loadPicture("Maze/spritemap-rpg.png")
-
-
-
+	spriteMap, err := loadPicture("Images/spritemap-rpg.png")
 
 	// // Initialize Player data
-	if automation == false {	// Draw just player0
+	if Automation == false { // Draw just player0
 		player_list = append(player_list, &player{})
 		player_list[0].restart_player(spriteMap, player_list[0])
-	} else {	// draw all population
-			// Add players accordingly to population
-			for i := 0 ; i < population_size ; i++ {
-				player_list = append(player_list, &player{})
-				player_list[i].restart_player(spriteMap, player_list[i])
-			}
+	} else { // draw all population
+		// Add players accordingly to population
+		for i := 0; i < Population_size; i++ {
+			player_list = append(player_list, &player{})
+			player_list[i].restart_player(spriteMap, player_list[i])
+		}
 	}
 
 	// Initialize the background
 	bgd := &background{}
 	bgd.setPlayerSprites(spriteMap)
-
-
-
-
 
 	// Infinite loop
 	for !win.Closed() {
@@ -496,190 +492,380 @@ func Run() {
 		// Draw all background objects first to this object and just draw to window one time later
 		imd := imdraw.New(spriteMap)
 
-		// Esc to quit program
-    if win.JustPressed(pixelgl.KeyEscape) {
-      break
-    }
-
 		// Clear Screen
 		win.Clear(colornames.Lightgreen)
 
-		// ---------------------- Keyboard ---------------------- //
-
-		// Update player direction and keys pressed
-		if win.JustPressed(pixelgl.KeyUp) {
-			keyboard_human[up][0] = true
-		}
-		if win.JustPressed(pixelgl.KeyDown) {
-			keyboard_human[down][0] = true
-		}
-		if win.JustPressed(pixelgl.KeyLeft) {
-			keyboard_human[left][0] = true
-		}
-		if win.JustPressed(pixelgl.KeyRight) {
-			keyboard_human[right][0] = true
+		// Esc to quit program
+		if win.JustPressed(pixelgl.KeyEscape) {
+			break
 		}
 
+		if !simlation_finished {
 
-		// ---------- Read and execute commands from IA ---------- //
-		if automation {
+			// ---------------------- Keyboard ---------------------- //
 
-			// Decode all individuals into commands and save it to a Matrix
-			if cycle == 0 {
-				commands_matrix = individualtoCommands(population, gene_number)
+			// Update player direction and keys pressed
+			if win.JustPressed(pixelgl.KeyUp) {
+				keyboard_human[up][0] = true
+			}
+			if win.JustPressed(pixelgl.KeyDown) {
+				keyboard_human[down][0] = true
+			}
+			if win.JustPressed(pixelgl.KeyLeft) {
+				keyboard_human[left][0] = true
+			}
+			if win.JustPressed(pixelgl.KeyRight) {
+				keyboard_human[right][0] = true
 			}
 
-			// Loop for all commands available
-			if cycle < len(commands_matrix[0]) {
+			// ---------- Read and execute commands from IA ---------- //
+			if Automation {
 
-				// Fill the commands in all virtual keyboards
-				for i := 0 ; i < len(population) ; i ++ {
-					// Execute the command on keyboard
-
-					// UP[0] first player, UP[1] second player...
-					keyboard_automations[commands_matrix[i][cycle]][i] = true
+				// Decode all individuals into commands and save it to a Matrix
+				if cycle == 0 {
+					commands_matrix = individualtoCommands(population, Gene_number)
 				}
 
-				// Update cycle
-				cycle ++
+				// Loop for all commands available
+				if cycle < len(commands_matrix[0]) {
 
-			// Finished all commands for this generation, reset and start again
-			} else {
+					// Fill the commands in all virtual keyboards
+					for i := 0; i < len(population); i++ {
+						// Execute the command on keyboard
 
-				// If there are more generations to run
-				if current_generation < generations {
-
-					// Update the Score slice
-					for i := 0 ; i < population_size ; i ++ {
-						population_score = append(population_score, player_list[i].score)
+						// UP[0] first player, UP[1] second player...
+						keyboard_automations[commands_matrix[i][cycle]][i] = true
 					}
 
-					// Clean variables for the next generation
-					cycle = 0
-					// // Restart game for next individual
-					for i := 0 ; i < population_size ; i++ {
-						player_list[i].restart_player(spriteMap, player_list[i])
-					}
+					// Update cycle
+					cycle++
 
-					genetic_algorithm()
-					current_generation ++
-					max_generation_position = 0
+					// Finished all commands for this generation, reset and start again
 				} else {
-					fmt.Printf("\n\n\n|| ---------------------------------- Simulation Ended ---------------------------------- ||\n\nWinners:\n")
-					for i := 0 ; i < len(objective) ; i++ {
-						fmt.Printf("%d\tGen: %d\tIndividual: %s\tScore: %d\tSteps: %d\n", i+1, objective[i].generation, objective[i].individual,  objective[i].score, objective[i].steps )
-					}
 
-					// Calculate the best one (less steps)
-					quickest := gene_number / 2
-					for i := 0 ; i < len(objective) ; i++ {
-						if objective[i].steps < quickest {
-							quickest = objective[i].steps
+					// If there are more generations to run
+					if current_generation < Generations {
+
+						// Update the Score slice
+						for i := 0; i < Population_size; i++ {
+							population_score = append(population_score, player_list[i].score)
 						}
-					}
 
-					fmt.Printf("\nBest performances:\n")
-					for i := 0 ; i < len(objective) ; i++ {
-						if objective[i].steps == quickest {
-							fmt.Printf("Gen: %d\tIndividual: %s\tScore: %d\tSteps: %d\n", objective[i].generation, objective[i].individual,  objective[i].score, objective[i].steps )
+						// Clean variables for the next generation
+						cycle = 0
+						// // Restart game for next individual
+						for i := 0; i < Population_size; i++ {
+							player_list[i].restart_player(spriteMap, player_list[i])
 						}
+
+						genetic_algorithm()
+						current_generation++
+						max_generation_position = 0
+					} else {
+						fmt.Printf("\n\n\n|| ---------------------------------- Simulation Ended ---------------------------------- ||\n\nWinners:\n")
+						for i := 0; i < len(objective); i++ {
+							fmt.Printf("%d\tGen: %d\tIndividual: %s\tScore: %d\tSteps: %d\n", i+1, objective[i].generation, objective[i].individual, objective[i].score, objective[i].steps)
+						}
+
+						// Calculate the best one (less steps)
+						quickest := Gene_number / 2
+						for i := 0; i < len(objective); i++ {
+							if objective[i].steps < quickest {
+								quickest = objective[i].steps
+							}
+						}
+
+						fmt.Printf("\nBest performances:\n")
+						for i := 0; i < len(objective); i++ {
+							if objective[i].steps == quickest {
+								fmt.Printf("Gen: %d\tIndividual: %s\tScore: %d\tSteps: %d\n", objective[i].generation, objective[i].individual, objective[i].score, objective[i].steps)
+							}
+						}
+						fmt.Println()
+
+						// Disable automation
+						Automation = false
+
+						// Show Results
+						simlation_finished = true
 					}
-					fmt.Println()
-
-
-					// Disable automation
-					automation = false
 				}
 			}
 
-		}
+			// ---------------------- Keyboard ---------------------- //
 
-		// ---------------------- Keyboard ---------------------- //
+			// Move Player - Necessary for the automation of player execution
+			// Update player direction and keys pressed
+			if win.JustPressed(pixelgl.KeyUp) {
+				keyboard_human[up][0] = true
+			}
+			if win.JustPressed(pixelgl.KeyDown) {
+				keyboard_human[down][0] = true
+			}
+			if win.JustPressed(pixelgl.KeyLeft) {
+				keyboard_human[left][0] = true
+			}
+			if win.JustPressed(pixelgl.KeyRight) {
+				keyboard_human[right][0] = true
+			}
 
-		// Move Player - Necessary for the automation of player execution
-		// Update player direction and keys pressed
-		if win.JustPressed(pixelgl.KeyUp) {
-			keyboard_human[up][0] = true
-		}
-		if win.JustPressed(pixelgl.KeyDown) {
-			keyboard_human[down][0] = true
-		}
-		if win.JustPressed(pixelgl.KeyLeft) {
-			keyboard_human[left][0] = true
-		}
-		if win.JustPressed(pixelgl.KeyRight) {
-			keyboard_human[right][0] = true
-		}
-
-
-		// Move Player - Necessary for the automation of player execution
-		if keyboard_human[up][0] == true {
-			direction = up
-			player_list[0].update(up, 0)
-		}
-		if keyboard_human[down][0] == true {
-			direction = down
-			player_list[0].update(down, 0)
-		}
-		if keyboard_human[left][0] == true {
-			direction = left
-			player_list[0].update(left, 0)
-		}
-		if keyboard_human[right][0] == true {
-			direction = right
-			player_list[0].update(right, 0)
-		}
-
-		// Virtual Keyboard for automation
-		// Move Automated Players - Necessary for the automation of player execution
-		for i := 0 ; i < len(population) ; i ++ {
-			if keyboard_automations[up][i] == true {
+			// Move Player - Necessary for the automation of player execution
+			if keyboard_human[up][0] == true {
 				direction = up
-				player_list[i].update(up, i)
+				player_list[0].update(up, 0)
 			}
-			if keyboard_automations[down][i] == true {
+			if keyboard_human[down][0] == true {
 				direction = down
-					player_list[i].update(down, i)
+				player_list[0].update(down, 0)
 			}
-			if keyboard_automations[left][i] == true {
+			if keyboard_human[left][0] == true {
 				direction = left
-				player_list[i].update(left, i)
+				player_list[0].update(left, 0)
 			}
-			if keyboard_automations[right][i] == true {
+			if keyboard_human[right][0] == true {
 				direction = right
-				player_list[i].update(right, i)
+				player_list[0].update(right, 0)
 			}
+
+			// Virtual Keyboard for automation
+			// Move Automated Players - Necessary for the automation of player execution
+			for i := 0; i < len(population); i++ {
+				if keyboard_automations[up][i] == true {
+					direction = up
+					player_list[i].update(up, i)
+				}
+				if keyboard_automations[down][i] == true {
+					direction = down
+					player_list[i].update(down, i)
+				}
+				if keyboard_automations[left][i] == true {
+					direction = left
+					player_list[i].update(left, i)
+				}
+				if keyboard_automations[right][i] == true {
+					direction = right
+					player_list[i].update(right, i)
+				}
+			}
+
+			// Clean key pressed for the next cycle
+			keyboard_human[up][0] = false
+			keyboard_human[down][0] = false
+			keyboard_human[left][0] = false
+			keyboard_human[right][0] = false
+
+			for i := 0; i < len(population); i++ {
+				keyboard_automations[up][i] = false
+				keyboard_automations[down][i] = false
+				keyboard_automations[left][i] = false
+				keyboard_automations[right][i] = false
+			}
+
+			// // ------------------- Draw Background ------------------ //
+			// pic, err := loadPicture("Images/background.png")
+			// if err != nil {
+			// 	panic(err)
+			// }
+
+			// sprite := pixel.NewSprite(pic, pic.Bounds())
+
+			// // Initial X and Y values
+			// var X float64 = 110
+			// var Y float64 = 70
+
+			// for i := 0; i < 6; i++ {
+			// 	for j := 0; j < 5; j++ {
+			// 		// sprite.Draw(win, pixel.IM.Scaled(pixel.ZV, 0.1).Moved(pixel.V(110, 70)))
+			// 		sprite.Draw(win, pixel.IM.Scaled(pixel.ZV, 0.1).Moved(pixel.V(X, Y)))
+			// 		X += 220
+			// 	}
+			// 	X = 110
+			// 	Y += 140
+			// }
+
+			// -------------------- Draw Objects -------------------- //
+
+			// Just draw Degug screen if Automation is enabled
+			if Automation {
+				imd.Color = colornames.Gray
+				imd.Push(pixel.V(0, 630))
+				imd.Push(pixel.V(800, 800))
+				imd.Rectangle(0)
+
+				imd.Color = colornames.Whitesmoke
+				imd.Push(pixel.V(5, 635))
+				imd.Push(pixel.V(795, 795))
+				imd.Rectangle(0)
+			}
+
+			// Draw the entire background
+			bgd.draw(imd)
+
+			// Draw Players on the screen
+			for j := 0; j < len(player_list); j++ {
+				player_list[j].draw(imd)
+			}
+
+			// Draw with just one draw() call to screen
+			imd.Draw(win)
+
+			// Just draw Degug Text Information if Automation is enabled
+			if Automation {
+				// Generation
+				textMessage = text.New(pixel.V(20, 780), atlas)
+				textMessage.Clear()
+				textMessage.Color = colornames.Black
+				fmt.Fprintf(textMessage, "GENERATION: %d of %d", print_current_generation+1, Generations)
+				textMessage.Draw(win, pixel.IM.Scaled(textMessage.Orig, 1))
+
+				// Mutated individuals
+				textMessage = text.New(pixel.V(20, 760), atlas)
+				textMessage.Clear()
+				textMessage.Color = colornames.Black
+				fmt.Fprintf(textMessage, "Mutated individuals: %d", mutation_ind_count)
+				textMessage.Draw(win, pixel.IM.Scaled(textMessage.Orig, 1))
+
+				// Mutated genes
+				textMessage = text.New(pixel.V(260, 760), atlas)
+				textMessage.Clear()
+				textMessage.Color = colornames.Black
+				fmt.Fprintf(textMessage, "Mutated genes: %d", mutation_count)
+				textMessage.Draw(win, pixel.IM.Scaled(textMessage.Orig, 1))
+
+				// Crossovers
+				textMessage = text.New(pixel.V(20, 740), atlas)
+				textMessage.Clear()
+				textMessage.Color = colornames.Black
+				fmt.Fprintf(textMessage, "Crossovers: %d", print_crossover_count)
+				textMessage.Draw(win, pixel.IM.Scaled(textMessage.Orig, 1))
+
+				// Best Individual
+				textMessage = text.New(pixel.V(20, 720), atlas)
+				textMessage.Clear()
+				textMessage.Color = colornames.Black
+				fmt.Fprintf(textMessage, "Best Individual: %s", print_best)
+				textMessage.Draw(win, pixel.IM.Scaled(textMessage.Orig, 1))
+
+				// Fitness Average
+				textMessage = text.New(pixel.V(20, 700), atlas)
+				textMessage.Clear()
+				textMessage.Color = colornames.Black
+				fmt.Fprintf(textMessage, "Fitness Average: %d", print_average_score)
+				textMessage.Draw(win, pixel.IM.Scaled(textMessage.Orig, 1))
+
+				// Maximum position
+				textMessage = text.New(pixel.V(20, 660), atlas)
+				textMessage.Clear()
+				textMessage.Color = colornames.Black
+				fmt.Fprintf(textMessage, "Maximum position: %d of %d", print_max_generation_position+1, grid_size_x)
+				textMessage.Draw(win, pixel.IM.Scaled(textMessage.Orig, 1))
+
+				// Fitness
+				textMessage = text.New(pixel.V(260, 660), atlas)
+				textMessage.Clear()
+				textMessage.Color = colornames.Black
+				fmt.Fprintf(textMessage, "Fitness: %d", print_score)
+				textMessage.Draw(win, pixel.IM.Scaled(textMessage.Orig, 1))
+
+				// Number of Winners
+				if len(objective) > 0 {
+					textMessage = text.New(pixel.V(20, 640), atlas)
+					textMessage.Clear()
+					textMessage.Color = colornames.Black
+					fmt.Fprintf(textMessage, "Number of Winners: %d", len(objective))
+					textMessage.Draw(win, pixel.IM.Scaled(textMessage.Orig, 1))
+				}
+			}
+
+		} else {
+
+			imd.Color = colornames.Gray
+			imd.Push(pixel.V(0, 630))
+			imd.Push(pixel.V(800, 800))
+			imd.Rectangle(0)
+
+			imd.Color = colornames.Whitesmoke
+			imd.Push(pixel.V(5, 635))
+			imd.Push(pixel.V(795, 795))
+			imd.Rectangle(0)
+
+			// Draw the entire background
+			bgd.draw(imd)
+
+			// // Draw Players on the screen
+			// for j := 0; j < len(player_list); j++ {
+			// 	player_list[j].draw(imd)
+			// }
+
+			// Draw with just one draw() call to screen
+			imd.Draw(win)
+
+			// Banner
+			textMessage = text.New(pixel.V(20, 780), atlas)
+			textMessage.Clear()
+			textMessage.Color = colornames.Black
+			fmt.Fprintf(textMessage, "|| ---------------------- Simulation Ended ---------------------- ||")
+			textMessage.Draw(win, pixel.IM.Scaled(textMessage.Orig, 1))
+
+			// Generation
+			textMessage = text.New(pixel.V(20, 760), atlas)
+			textMessage.Clear()
+			textMessage.Color = colornames.Black
+			fmt.Fprintf(textMessage, "|| GENERATIONS: %d", print_current_generation+1)
+			textMessage.Draw(win, pixel.IM.Scaled(textMessage.Orig, 1))
+
+			// Number of Winners
+			textMessage = text.New(pixel.V(20, 740), atlas)
+			textMessage.Clear()
+			textMessage.Color = colornames.Black
+			fmt.Fprintf(textMessage, "|| Number of Winners: %d", len(objective))
+			textMessage.Draw(win, pixel.IM.Scaled(textMessage.Orig, 1))
+
+			// Maximum position
+			textMessage = text.New(pixel.V(260, 740), atlas)
+			textMessage.Clear()
+			textMessage.Color = colornames.Black
+			fmt.Fprintf(textMessage, "Maximum position reached: %d of %d", best_step, grid_size_x)
+			textMessage.Draw(win, pixel.IM.Scaled(textMessage.Orig, 1))
+
+			if len(objective) > 0 {
+
+				// Calculate the best individual (less steps)
+				quickest := Gene_number / 2
+				for i := 0; i < len(objective); i++ {
+					if objective[i].steps < quickest {
+						quickest = objective[i].steps
+					}
+				}
+
+				best_performer := 0 // less steps and the first one to reach the objective
+				for i := len(objective) - 1; i >= 0; i-- {
+					if objective[i].steps == quickest {
+						// fmt.Printf("Gen: %d\tIndividual: %s\tScore: %d\tSteps: %d\n", objective[i].generation, objective[i].individual, objective[i].score, objective[i].steps)
+						best_performer = i
+					}
+				}
+
+				// Best Individual
+				textMessage = text.New(pixel.V(20, 680), atlas)
+				textMessage.Clear()
+				textMessage.Color = colornames.Black
+				fmt.Fprintf(textMessage, "Best Individual: %s\n\nGeneration: %d, with %d steps (Best solution: %d)", objective[best_performer].individual, objective[best_performer].generation, objective[best_performer].steps, map_best_solution)
+				textMessage.Draw(win, pixel.IM.Scaled(textMessage.Orig, 1))
+
+			} else {
+				// Best Individual
+				textMessage = text.New(pixel.V(20, 700), atlas)
+				textMessage.Clear()
+				textMessage.Color = colornames.Black
+				fmt.Fprintf(textMessage, "No Winner")
+				textMessage.Draw(win, pixel.IM.Scaled(textMessage.Orig, 1))
+			}
+
 		}
-
-		// Clean key pressed for the next cycle
-		keyboard_human[up][0] = false
-		keyboard_human[down][0] = false
-		keyboard_human[left][0] = false
-		keyboard_human[right][0] = false
-
-		for i := 0 ; i < len(population) ; i ++ {
-			keyboard_automations[up][i] = false
-			keyboard_automations[down][i] = false
-			keyboard_automations[left][i] = false
-			keyboard_automations[right][i] = false
-		}
-
-		// -------------------- Draw Objects -------------------- //
-
-		// Draw the entire background
-		bgd.draw(imd)
-
-		// Draw Players on the screen
-		for j := 0 ; j < len(player_list) ; j++ {
-			player_list[j].draw(imd)
-		}
-
-		// Draw with just one draw() call to screen
-		imd.Draw(win)
 
 		// Update the screen
 		win.Update()
 
-		// time.Sleep(100 * time.Millisecond)
 	}
 }
