@@ -29,7 +29,6 @@ func main() {
 func load_INI() {
 	// Check the Operational System to save the ini file
 	myos := runtime.GOOS
-	// fmt.Printf("%s", myos)
 
 	// Get home dir
 	home, err := os.UserHomeDir()
@@ -40,7 +39,6 @@ func load_INI() {
 
 	if myos == "darwin" {
 		maze_ini = home + "/.maze.ini"
-		// fmt.Printf("%s", maze_ini)
 
 		// Check if the ini file already exist
 		if _, err := os.Stat(maze_ini); err != nil || os.IsNotExist(err) {
@@ -62,13 +60,50 @@ func load_INI() {
 
 	} else if myos == "windows" {
 		// Windows
-		fmt.Printf("Operational System %s not supported yet", myos)
-		os.Exit(2)
+		maze_ini = home + "\\.maze.ini"
+		fmt.Printf("%s\n", home)
+		fmt.Printf("%s\n", maze_ini)
 
-	} else {
+		// Check if the ini file already exist
+		if _, err := os.Stat(maze_ini); err != nil || os.IsNotExist(err) {
+			// File not found, create
+			f, err := os.Create(maze_ini)
+			if err != nil {
+				fmt.Printf("Error creating ini file: %s. Exiting.", err)
+				os.Exit(2)
+			}
+			defer f.Close()
+
+			// Write initial INI Values
+			_, err2 := f.WriteString("[Maps]\nmap=1\t\t\t; 0 || 1\n\n[Mode]\nAutomation=true\t\t; true || false\n\n[Settings]\nGenerations=100\nPopulation_size=100\nGene_number=50\nK=25\nCrossover_rate=0.7\nMutation_rate=0.05\nElitism_percentual=10\n")
+			if err2 != nil {
+				fmt.Printf("Error writing to ini file: %s. Exiting.", err)
+				os.Exit(2)
+			}
+		}
+
+
 		// Linux
-		fmt.Printf("Operational System %s not supported yet", myos)
-		os.Exit(2)
+
+		maze_ini = home + "/.maze.ini"
+
+		// Check if the ini file already exist
+		if _, err := os.Stat(maze_ini); err != nil || os.IsNotExist(err) {
+			// File not found, create
+			f, err := os.Create(maze_ini)
+			if err != nil {
+				fmt.Printf("Error creating ini file: %s. Exiting.", err)
+				os.Exit(2)
+			}
+			defer f.Close()
+
+			// Write initial INI Values
+			_, err2 := f.WriteString("[Maps]\nmap=1\t\t\t; 0 || 1\n\n[Mode]\nAutomation=true\t\t; true || false\n\n[Settings]\nGenerations=100\nPopulation_size=100\nGene_number=50\nK=25\nCrossover_rate=0.7\nMutation_rate=0.05\nElitism_percentual=10\n")
+			if err2 != nil {
+				fmt.Printf("Error writing to ini file: %s. Exiting.", err)
+				os.Exit(2)
+			}
+		}
 	}
 
 	// Load INI information:
