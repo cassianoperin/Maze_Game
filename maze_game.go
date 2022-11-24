@@ -27,6 +27,7 @@ func main() {
 }
 
 func load_INI() {
+
 	// Check the Operational System to save the ini file
 	myos := runtime.GOOS
 
@@ -61,8 +62,6 @@ func load_INI() {
 	} else if myos == "windows" {
 		// Windows
 		maze_ini = home + "\\.maze.ini"
-		fmt.Printf("%s\n", home)
-		fmt.Printf("%s\n", maze_ini)
 
 		// Check if the ini file already exist
 		if _, err := os.Stat(maze_ini); err != nil || os.IsNotExist(err) {
@@ -82,9 +81,8 @@ func load_INI() {
 			}
 		}
 
-
+	} else if myos == "linux" {
 		// Linux
-
 		maze_ini = home + "/.maze.ini"
 
 		// Check if the ini file already exist
@@ -104,6 +102,9 @@ func load_INI() {
 				os.Exit(2)
 			}
 		}
+	} else {
+		fmt.Printf("Operational system not supported: %s. Exiting\n\n", myos)
+		os.Exit(2)
 	}
 
 	// Load INI information:

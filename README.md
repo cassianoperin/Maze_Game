@@ -38,14 +38,11 @@ Cross the screen and reach the empty space on last column at the right.
 
 ### MAC
 
-`go build -ldflags="-s -w"`
+#### Build
+`env GOOS="darwin" GOARCH="amd64" go build -ldflags="-s -w"`
 
-#### Compress binaries
-`brew install upx`
-`upx <binary_file>`
-
-#### Instructions to pack into Mac executable:
-1) Baixar o binário
+#### Instructions to add the icon
+1) Download Genicon
 https://github.com/kindlychung/genicon
 
 2) Install dependency:
@@ -101,7 +98,22 @@ Edit and replace the APP section of the file : `winres/winres.json`
 
 ### Linux
 
-PENDING
+Ubuntu:
+
+#### Install requisites
+`sudo apt install pkg-config libgl1-mesa-dev licxi-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev mesa-utils build-essential xorg-dev upx`
+
+#### Build
+
+- 32 bits:
+`env GOOS="linux" GOARCH="386"   CGO_ENABLED="1" go build -ldflags="-s -w"`
+
+- 64 bits:
+`env GOOS="linux" GOARCH="amd64" CGO_ENABLED="1" go build -ldflags="-s -w"`
+
+#### Compress binaries
+
+`upx <binary_file>`
 
 
 ## Documentation:
