@@ -6,7 +6,7 @@ Cross the screen and reach the empty space on last column at the right.
 
 **Human** | **Genetic Algorithms**
 :-------------------------:|:-------------------------:
-<img width="430" alt="horizontal" src="https://github.com/cassianoperin/Maze_Game/blob/main/Images/maze-human.png">  |  <img width="430" alt="vertical" src="https://github.com/cassianoperin/Maze_Game/blob/main/Images/maze-automations.gif">
+<img width="430" alt="horizontal" src="https://github.com/cassianoperin/Maze_Game/blob/main/Images/maze-human.png">  |  <img width="415" alt="vertical" src="https://github.com/cassianoperin/Maze_Game/blob/main/Images/maze-automations.gif">
 
 ## Usage
 1)  After the first execution, the program will create an ini file named '.maze.ini' into user home folder
@@ -26,7 +26,6 @@ Cross the screen and reach the empty space on last column at the right.
 - Improve score considering the individual that got the best result in less movements.
 - After finish, show the path of winner
 - Key to reset
-- Binary for Windows
 - Clean code
 - Show the time spent after the execution
 - Translate the individual into arrows
@@ -42,76 +41,95 @@ Cross the screen and reach the empty space on last column at the right.
 `env GOOS="darwin" GOARCH="amd64" go build -ldflags="-s -w"`
 
 #### Instructions to add the icon
-1) Download Genicon
+
+#### 1. Download Genicon
+
 https://github.com/kindlychung/genicon
 
-2) Install dependency:
-brew install imagemagick
+#### 2. Install dependency:
 
-3) Create the icon based on a PNG image
+`brew install imagemagick`
+
+#### 3. Create the icon based on a PNG image:
+
 `./genicon icon.png tmp_folder`
 
-4) Rename the folder mv AppIcon.appiconset AppIcon.iconset
+#### 4. Rename the folder mv AppIcon.appiconset AppIcon.iconset
 
-5) Create the icon in the format needed by Mac executable
-iconutil -c icns -o icon.icns AppIcon.iconset
+#### 5. Create the icon in the format needed by Mac executable
+
+`iconutil -c icns -o icon.icns AppIcon.iconset`
 
 
 ### Windows
 
 GO allows to create a Windows executable file using a MacOS:
 
-- Install mingw-w64 (support the GCC compiler on Windows systems):
+#### 1. Install mingw-w64 (support the GCC compiler on Windows systems):
+
 `brew install mingw-w64`
 
-- Prepare the icon for the binary:
+#### 2. Prepare the icon for the binary:
+
 `go install github.com/tc-hib/go-winres@latest`
+
 `sudo go-winres init`
+
 `sudo chown -R $(id -un) winres && chmod 755 winres`
 
-Edit and replace the APP section of the file : `winres/winres.json`
+- Edit and replace the APP section of the file "winres/winres.json":
 
-`"APP": {
+```yaml
+"APP": {
     "0000": [
       "../Images/AppIcon.iconset/icon_128x128.png",
       "../Images/AppIcon.iconset/icon_64x64.png",
       "../Images/AppIcon.iconset/icon_32x32.png",
       "../Images/AppIcon.iconset/icon_16x16.png"
     ]
-  }`
+  }
+  ```
+  
 `go-winres make`
 
+#### 3. Compile:
+
 - 32 bits:
+
 `env GOOS="windows" GOARCH="386"   CGO_ENABLED="1" CC="i686-w64-mingw32-gcc"   go build -ldflags="-s -w"`
 
 - 64 bits:
+
 `env GOOS="windows" GOARCH="amd64" CGO_ENABLED="1" CC="x86_64-w64-mingw32-gcc" go build -ldflags="-s -w"`
 
 * If you receive the message when running the executable, you need to ensure that the video drivers supports OpenGL (or the virtual driver in the case of virtualization).
 
 * If you receive this message : "APIUnavailable: WGL: The driver does not appear to support OpenGL", please update your graphics driver os just copy the Mesa3D library from https://fdossena.com/?p=mesa/index.frag  (opengl32.dll) to the executable folder.
 
-#### Compress binaries
+#### 4. Compress binaries
 `brew install upx`
 `upx <binary_file>`
 
 
 ### Linux
 
-Ubuntu:
+Instructions to build using Ubuntu.
 
-#### Install requisites
+#### 1. Install requisites:
+
 `sudo apt install pkg-config libgl1-mesa-dev licxi-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev mesa-utils build-essential xorg-dev upx`
 
-#### Build
+#### 2. Build:
 
 - 32 bits:
+
 `env GOOS="linux" GOARCH="386"   CGO_ENABLED="1" go build -ldflags="-s -w"`
 
 - 64 bits:
+
 `env GOOS="linux" GOARCH="amd64" CGO_ENABLED="1" go build -ldflags="-s -w"`
 
-#### Compress binaries
+#### 3. Compress binaries:
 
 `upx <binary_file>`
 
@@ -131,5 +149,7 @@ https://www.codingdream.com/index.php/simple-pacman-in-using-go-and-pixelgl-part
 https://medium.com/@mattholt/packaging-a-go-application-for-macos-f7084b00f6b5
 
 - Go Windows Binary Icon:
+
 https://stackoverflow.com/questions/25602600/how-do-you-set-the-application-icon-in-golang
+
 https://github.com/mxre/winres
