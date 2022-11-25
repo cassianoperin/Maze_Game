@@ -107,7 +107,9 @@ GO allows to create a Windows executable file using a MacOS:
 * If you receive this message : "APIUnavailable: WGL: The driver does not appear to support OpenGL", please update your graphics driver os just copy the Mesa3D library from https://fdossena.com/?p=mesa/index.frag  (opengl32.dll) to the executable folder.
 
 #### 4. Compress binaries
+
 `brew install upx`
+
 `upx <binary_file>`
 
 
